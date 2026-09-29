@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit 5 · Machine Translation &amp; the Paradigm Shift | NLP in Practice</title>
+<meta name="description" content="Industry-focused notes on machine translation, seq2seq and attention, Transformers, BERT, LaMDA and GPT, conversational AI, RAG and the research papers that shaped modern NLP.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="On this page">
+  <a class="home" href="index.html">← NLP in Practice</a>
+  <a class="toc-agenda" href="agenda.html">Session agenda</a>
+  <ol>
+    <li><a href="#why">Why translation matters</a></li>
+    <li><a href="#history">Five eras of MT</a></li>
+    <li><a href="#seq2seq">Seq2Seq</a></li>
+    <li><a href="#handson">Hands-on: seq2seq + attention</a></li>
+    <li><a href="#attention">Attention, visualised</a></li>
+    <li><a href="#evaluation">Evaluating translation</a></li>
+    <li><a href="#transformer">Transformers</a></li>
+    <li><a href="#paradigm">The paradigm shift</a></li>
+    <li><a href="#conversational">Conversational AI</a></li>
+    <li><a href="#choosing">Choosing an approach</a></li>
+    <li><a href="#papers">Research papers</a></li>
+    <li><a href="#practice">Try it yourself</a></li>
+    <li><a href="#takeaways">Key takeaways</a></li>
+  </ol>
+</nav>
+
+<main>
+<header>
+  <div class="eyebrow">Unit 5 · Industry Expert Session · Symbiosis</div>
+  <h1>Machine Translation &amp; the Paradigm Shift</h1>
+  <p class="sub">From encoder–decoders and attention to Transformers, BERT, LaMDA and GPT, and how today's conversational AI is actually built. The unit where everything from Units 1–4 comes together.</p>
+</header>
+
+<!-- 0 -->
+<section id="why">
+  <h2><span class="num">00</span>Why machine translation still matters</h2>
+  <p>Machine translation (MT) is the problem that drove most of the big ideas in modern NLP: encoder–decoders, attention and the Transformer were all invented to translate better. It is also a very practical problem, especially in India.</p>
+  <div class="stats">
+    <div class="stat"><b>22</b><span>scheduled languages in India's Constitution</span></div>
+    <div class="stat"><b>2022</b><span>launch of Bhashini, the government's national language translation mission</span></div>
+    <div class="stat"><b>2016</b><span>Google Translate switches from statistical to neural MT</span></div>
+    <div class="stat"><b>2017</b><span>the Transformer is introduced, for translation</span></div>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>E-commerce and food apps translate product listings and menus into regional languages; banks and government services offer support in Hindi, Marathi, Tamil and more; customer-support teams translate incoming tickets so one team can handle many languages. Open models such as AI4Bharat's <strong>IndicTrans2</strong> (2023) cover all 22 scheduled Indian languages.</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="history">
+  <h2><span class="num">01</span>Five eras of machine translation</h2>
+  <figure>
+    <img src="static/images/unit5/mt_history.svg" alt="Five eras of machine translation: rule-based (1950s to 1980s), statistical (1990s to 2016), neural seq2seq (2014 to 2017), Transformer (2017 onwards) and LLMs (2020 onwards)" loading="lazy">
+    <figcaption>Each era mirrors the NLP history from Unit 1: rules → statistics → neural networks → Transformers.</figcaption>
+  </figure>
+  <p>The 1954 Georgetown–IBM experiment from Unit 1 was a translation demo. Statistical MT learned phrase tables from millions of translated sentence pairs (for example, parliamentary proceedings published in two languages). Neural MT replaced the whole pipeline with a single network trained end to end.</p>
+</section>
+
+<!-- 2 -->
+<section id="seq2seq">
+  <h2><span class="num">02</span>Seq2Seq: the encoder–decoder</h2>
+  <p>A <strong>sequence-to-sequence</strong> model (Sutskever et al., 2014) uses two RNNs from Unit 4: an <strong>encoder</strong> reads the source sentence into a vector, and a <strong>decoder</strong> generates the translation one token at a time, like the language model in Unit 4, but conditioned on that vector.</p>
+  <figure>
+    <img src="static/images/unit5/seq2seq_attention.svg" alt="Panel A: plain seq2seq squeezes I love biryani into one context vector before decoding the Hindi translation. Panel B: with attention, the decoder looks back at every encoder state, putting most weight on biryani while writing the Hindi word for it" loading="lazy">
+    <figcaption>A: the single-vector bottleneck. B: attention lets the decoder look back at every input word (weights illustrative).</figcaption>
+  </figure>
+  <h4>Three terms you will hear in every MT and LLM team</h4>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Term</th><th>Meaning</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Teacher forcing</strong></td><td>During training, the decoder is fed the <em>correct</em> previous word, not its own guess</td><td>Much faster, more stable training; the same trick trains GPT-style models</td></tr>
+      <tr><td><strong>Greedy decoding</strong></td><td>At each step, pick the single most likely next token</td><td>Fast, but an early mistake cannot be undone</td></tr>
+      <tr><td><strong>Beam search</strong></td><td>Keep the best <em>k</em> partial translations at each step, pick the best complete one</td><td>Standard for translation; costs roughly k× more compute</td></tr>
+    </tbody>
+  </table></div>
+  <p>The bottleneck in panel A is the problem: a long sentence has to be squeezed into one fixed-size vector, and translation quality drops as sentences get longer. <strong>Attention</strong> (Bahdanau et al., 2014; published 2015) fixed it by letting the decoder look at <em>all</em> encoder states and decide which ones matter for the current output word.</p>
+</section>
+
+<!-- 3 -->
+<section id="handson">
+  <h2><span class="num">03</span>Hands-on: a seq2seq model with attention</h2>
+  <p>Full English–Hindi translation needs millions of sentence pairs and GPUs. But the exact same architecture solves a smaller "translation" task that data teams face constantly: <strong>normalising messy dates</strong>. Support tickets, KYC forms and invoices contain "7th of march, 2011", "05.11.2003", "oct 2, 2019"… and the database needs <code>2011-03-07</code>.</p>
+  <p>We train a character-level GRU encoder–decoder, once <strong>without</strong> attention and once <strong>with</strong> it, on 20,000 generated examples (about 25 seconds each on a laptop CPU):</p>
+<pre><code>import random, datetime, torch, torch.nn as nn
+random.seed(0); torch.manual_seed(0)
+
+# ---------- 1. Data: messy human dates -&gt; ISO format (a real data-cleaning task) ----------
+MONTHS = [&quot;january&quot;, &quot;february&quot;, &quot;march&quot;, &quot;april&quot;, &quot;may&quot;, &quot;june&quot;, &quot;july&quot;,
+          &quot;august&quot;, &quot;september&quot;, &quot;october&quot;, &quot;november&quot;, &quot;december&quot;]
+def messy(d):
+    m, m3 = MONTHS[d.month - 1], MONTHS[d.month - 1][:3]
+    suf = &quot;th&quot; if 11 &lt;= d.day &lt;= 13 else {1: &quot;st&quot;, 2: &quot;nd&quot;, 3: &quot;rd&quot;}.get(d.day % 10, &quot;th&quot;)
+    return random.choice([
+        f&quot;{d.day} {m3} {d.year}&quot;, f&quot;{d.day} {m} {d.year}&quot;, f&quot;{m3} {d.day}, {d.year}&quot;,
+        f&quot;{d.day}{suf} {m} {d.year}&quot;, f&quot;{d.day:02d}/{d.month:02d}/{d.year}&quot;, f&quot;{d.day}-{d.month}-{d.year}&quot;,
+        f&quot;{m} {d.day} {d.year}&quot;, f&quot;{d.day:02d}.{d.month:02d}.{d.year}&quot;, f&quot;{d.day}{suf} of {m}, {d.year}&quot;,
+    ])
+def sample():
+    d = datetime.date(2000, 1, 1) + datetime.timedelta(days=random.randint(0, 12000))
+    return messy(d), d.isoformat()
+
+train = [sample() for _ in range(20000)]
+SRC = sorted(set(&quot;&quot;.join(s for s, _ in train))) ; TGT = list(&quot;0123456789-&quot;) + [&quot;&lt;s&gt;&quot;, &quot;&lt;/s&gt;&quot;]
+si = {c: i + 1 for i, c in enumerate(SRC)}; ti = {c: i for i, c in enumerate(TGT)}
+
+def enc_src(batch):
+    L = max(len(s) for s in batch)
+    return torch.tensor([[si.get(c, 0) for c in s] + [0] * (L - len(s)) for s in batch])
+def enc_tgt(batch):
+    return torch.tensor([[ti[&quot;&lt;s&gt;&quot;]] + [ti[c] for c in t] + [ti[&quot;&lt;/s&gt;&quot;]] for t in batch])
+
+# ---------- 2. Model: GRU encoder + GRU decoder with (Luong-style) attention ----------
+class Seq2Seq(nn.Module):
+    def __init__(self, H=128, attention=True):
+        super().__init__()
+        self.attention = attention
+        self.src_emb = nn.Embedding(len(SRC) + 1, 32, padding_idx=0)
+        self.tgt_emb = nn.Embedding(len(TGT), 32)
+        self.encoder = nn.GRU(32, H, batch_first=True)
+        self.decoder = nn.GRU(32, H, batch_first=True)
+        self.out = nn.Linear(2 * H if attention else H, len(TGT))
+
+    def forward(self, src, tgt_in):
+        enc_out, h = self.encoder(self.src_emb(src))                 # enc_out: one vector per source char
+        dec_out, _ = self.decoder(self.tgt_emb(tgt_in), h)          # decoder starts from the encoder summary
+        if not self.attention:
+            return self.out(dec_out), None
+        scores = dec_out @ enc_out.transpose(1, 2)                   # each output step scores every input char
+        scores = scores.masked_fill((src == 0).unsqueeze(1), -1e9)   # ignore padding
+        weights = scores.softmax(-1)                                 # attention weights
+        context = weights @ enc_out                                  # weighted mix of input chars
+        return self.out(torch.cat([dec_out, context], -1)), weights
+
+    @torch.no_grad()
+    def translate(self, text):
+        src, y, out = enc_src([text]), torch.tensor([[ti[&quot;&lt;s&gt;&quot;]]]), &quot;&quot;
+        for _ in range(12):                                          # greedy decoding, one char at a time
+            logits, w = self(src, y)
+            nxt = logits[0, -1].argmax().item()
+            if TGT[nxt] == &quot;&lt;/s&gt;&quot;: break
+            out += TGT[nxt]; y = torch.cat([y, torch.tensor([[nxt]])], 1)
+        return out, w
+
+def train_model(attention, epochs=3):
+    model = Seq2Seq(attention=attention); opt = torch.optim.Adam(model.parameters(), lr=2e-3)
+    for epoch in range(epochs):
+        random.shuffle(train)
+        for i in range(0, len(train), 64):
+            b = train[i:i + 64]
+            src, tgt = enc_src([s for s, _ in b]), enc_tgt([t for _, t in b])
+            logits, _ = model(src, tgt[:, :-1])                      # teacher forcing
+            loss = nn.functional.cross_entropy(logits.reshape(-1, len(TGT)), tgt[:, 1:].reshape(-1))
+            opt.zero_grad(); loss.backward(); nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
+    return model
+
+test = [sample() for _ in range(1000)]
+for attention in [False, True]:
+    model = train_model(attention)
+    acc = sum(model.translate(s)[0] == t for s, t in test) / len(test)
+    print(f&quot;attention={attention!s:&lt;5}  exact-match accuracy on 1,000 new dates = {acc:.1%}&quot;)
+
+for text in [&quot;26 sep 2026&quot;, &quot;october 2, 2019&quot;, &quot;7th of march, 2011&quot;, &quot;05.11.2003&quot;, &quot;12 sitambar 2026&quot;]:
+    print(f&quot;{text!r:&lt;22} -&gt; {model.translate(text)[0]}&quot;)
+torch.save(model.state_dict(), &quot;dates_attention.pt&quot;)</code></pre>
+<pre class="output">attention=False  exact-match accuracy on 1,000 new dates = 67.6%
+attention=True   exact-match accuracy on 1,000 new dates = 100.0%
+'26 sep 2026'          -&gt; 2026-09-26
+'october 2, 2019'      -&gt; 2019-10-02
+'7th of march, 2011'   -&gt; 2011-03-07
+'05.11.2003'           -&gt; 2003-11-05
+'12 sitambar 2026'     -&gt; 2026-09-12</pre>
+  <ul>
+    <li><strong>Same data, same training time, one change:</strong> attention takes exact-match accuracy from <strong>67.6% to 100%</strong>. Without it, the whole input must survive in one vector; with it, the decoder copies the day, month and year from wherever they sit in the input.</li>
+    <li><strong>"12 sitambar 2026"</strong>, the Hindi spelling of September, was never in the training data. The character-level model still maps it to month 09, probably because it shares letters with "september". Do not count on that kind of luck in production: test on real, messy inputs.</li>
+  </ul>
+  <p class="video-link">Full scripts: <a href="static/code/unit5/dates_seq2seq.py" download>dates_seq2seq.py</a> · <a href="static/code/unit5/plot_attn.py" download>plot_attn.py</a> (draws the heatmap below).</p>
+</section>
+
+<!-- 4 -->
+<section id="attention">
+  <h2><span class="num">04</span>Attention, visualised</h2>
+  <p>Because attention weights are just numbers between 0 and 1, we can look inside the trained model and see where it looked while writing each output character:</p>
+  <figure>
+    <img src="static/images/unit5/attention_dates.png" alt="Heatmap of real attention weights: while writing the year 2011 the model attends to the digits 0, 1, 1 of 2011; while writing the month 03 it attends to the end of the word march; while writing the day 07 it attends to the digit 7 at the start" loading="lazy">
+    <figcaption>Real attention weights from the trained model above, not an illustration.</figcaption>
+  </figure>
+  <ul>
+    <li>While writing the <strong>year</strong>, the model attends to the digits of "2011".</li>
+    <li>While writing the month <strong>"3"</strong>, it looks at the end of the word "march": that is where it has recognised which month it is.</li>
+    <li>While writing the day <strong>"7"</strong>, it jumps back to the very first character.</li>
+  </ul>
+  <p>Nobody programmed these alignments. The model learned them because they reduce the loss.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Attention maps like this were one of the first practical tools for <strong>debugging</strong> neural translation: when a system dropped or repeated a word, engineers could see which source words it had (or had not) attended to. Be careful, though: in large Transformers with many layers and heads, attention weights are only a partial explanation of why a model made a decision.</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="evaluation">
+  <h2><span class="num">05</span>Evaluating translation: BLEU and its limits</h2>
+  <p><strong>BLEU</strong> (Papineni et al., 2002) scores a translation by counting how many of its n-grams (Unit 2!) also appear in a human reference translation. It is cheap, automatic and was the standard MT metric for two decades. It also has well-known blind spots:</p>
+<pre><code>from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+
+reference = &quot;the food arrived cold and the delivery was late&quot;.split()
+candidates = {
+    &quot;exact copy&quot;:         &quot;the food arrived cold and the delivery was late&quot;,
+    &quot;same meaning&quot;:       &quot;the meal came cold and delivery was delayed&quot;,
+    &quot;word salad&quot;:         &quot;the delivery the food was late cold and arrived&quot;,
+    &quot;wrong meaning&quot;:      &quot;the food arrived hot and the delivery was early&quot;,
+}
+smooth = SmoothingFunction().method1
+for name, cand in candidates.items():
+    score = sentence_bleu([reference], cand.split(), smoothing_function=smooth)
+    print(f&quot;{name:&lt;14} BLEU = {score:.2f}   {cand}&quot;)</code></pre>
+<pre class="output">exact copy     BLEU = 1.00   the food arrived cold and the delivery was late
+same meaning   BLEU = 0.08   the meal came cold and delivery was delayed
+word salad     BLEU = 0.10   the delivery the food was late cold and arrived
+wrong meaning  BLEU = 0.43   the food arrived hot and the delivery was early</pre>
+  <p>A correct paraphrase scores <strong>0.08</strong>. A translation that says the food was <em>hot</em> and <em>early</em>, the opposite of the complaint, scores <strong>0.43</strong>, five times higher. BLEU measures word overlap, not meaning.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Metric</th><th>How it works</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>BLEU</strong></td><td>n-gram overlap with references</td><td>Quick regression checks; comparing versions of the same system</td></tr>
+      <tr><td><strong>chrF</strong></td><td>Character n-gram overlap</td><td>Better for languages with rich word forms (Hindi, Tamil)</td></tr>
+      <tr><td><strong>COMET</strong> and similar</td><td>A neural model trained to predict human quality judgements</td><td>Closer to human opinion; now common in research and industry</td></tr>
+      <tr><td><strong>Human evaluation</strong></td><td>Bilingual reviewers rate adequacy and fluency</td><td>Launch decisions, high-stakes domains (legal, medical)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>This is the same lesson as Unit 3's intrinsic vs extrinsic evaluation, and it is even more important for LLMs: automatic scores are useful for catching regressions, but <strong>launch decisions need human review on real samples</strong>, especially where a meaning error can cost money or harm a person.</p>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="transformer">
+  <h2><span class="num">06</span>Transformers: attention is all you need</h2>
+  <p>In 2017, Vaswani et al. at Google asked: if attention does the useful work, why keep the RNN at all? The <strong>Transformer</strong> removes recurrence entirely. Every word attends to every other word in the same sentence (<strong>self-attention</strong>), and all positions are processed in parallel.</p>
+  <figure>
+    <img src="static/images/unit5/qkv_attention.svg" alt="Self-attention: each word is projected into a query, key and value; softmax of Q times K transpose over square root of d, times V, gives each word a context-aware vector; bar chart shows bank attending mostly to loan and approved" loading="lazy">
+    <figcaption>Scaled dot-product attention. Each word asks a question (query), advertises what it has (key) and passes on content (value).</figcaption>
+  </figure>
+
+  <h3>Self-attention in 15 lines of NumPy</h3>
+  <p>Here is the core formula with real GloVe vectors from Unit 3. To keep it simple we skip the learned projection matrices (a real Transformer learns <code>W_Q</code>, <code>W_K</code>, <code>W_V</code>):</p>
+<pre><code>import numpy as np, gensim.downloader as api
+
+glove = api.load(&quot;glove-wiki-gigaword-50&quot;)
+
+def self_attention(words):
+    X = np.array([glove[w] for w in words])            # (n_words, 50): one static vector per word
+    Q, K, V = X, X, X                                   # a real Transformer learns 3 projection matrices here
+    scores = Q @ K.T / np.sqrt(X.shape[1])              # how relevant is each word to each other word
+    weights = np.exp(scores) / np.exp(scores).sum(1, keepdims=True)   # softmax per row
+    return weights, weights @ V                          # new vector = weighted mix of all words
+
+def cos(a, b): return float(a @ b / np.linalg.norm(a) / np.linalg.norm(b))
+
+for sentence in [&quot;i sat on the river bank&quot;, &quot;the bank approved my loan&quot;]:
+    words = sentence.split()
+    weights, out = self_attention(words)
+    bank = out[words.index(&quot;bank&quot;)]                      # &quot;bank&quot; after attending to its context
+    top = sorted(zip(words, weights[words.index(&quot;bank&quot;)]), key=lambda x: -x[1])[:3]
+    print(f&quot;{sentence!r}&quot;)
+    print(&quot;   bank attends to:&quot;, [(w, round(float(p), 2)) for w, p in top])
+    print(f&quot;   similarity to &#x27;water&#x27; = {cos(bank, glove[&#x27;water&#x27;]):.2f}   to &#x27;money&#x27; = {cos(bank, glove[&#x27;money&#x27;]):.2f}&quot;)
+print(f&quot;static GloVe &#x27;bank&#x27;:  water = {cos(glove[&#x27;bank&#x27;], glove[&#x27;water&#x27;]):.2f}   money = {cos(glove[&#x27;bank&#x27;], glove[&#x27;money&#x27;]):.2f}&quot;)</code></pre>
+<pre class="output">'i sat on the river bank'
+   bank attends to: [('bank', 0.79), ('on', 0.06), ('the', 0.06)]
+   similarity to 'water' = 0.42   to 'money' = 0.67
+'the bank approved my loan'
+   bank attends to: [('bank', 0.74), ('loan', 0.14), ('the', 0.06)]
+   similarity to 'water' = 0.38   to 'money' = 0.69
+static GloVe 'bank':  water = 0.34   money = 0.64</pre>
+  <p>An honest result. One layer of <em>untrained</em> attention moves "bank" towards "water" in the river sentence (0.34 → 0.42) and pulls in "loan" in the finance sentence, so the same word now has <strong>two different vectors</strong> in two contexts. But the shift is small: "bank" mostly attends to itself. Real Transformers learn the Q, K, V projections so that words attend to the context that matters, and stack 12 to 100+ layers of this. That is what makes their contextual vectors so much better than static embeddings.</p>
+  <figure>
+    <img src="static/images/unit5/transformer_block.svg" alt="Transformer block: token embeddings plus positional encoding feed multi-head self-attention, add and layer norm, a feed-forward network, and another add and layer norm, repeated N times; with reasons it won: parallel, direct, multi-head, positional encoding, scales" loading="lazy">
+    <figcaption>One Transformer block, repeated N times. Residual connections and layer normalisation keep deep stacks trainable.</figcaption>
+  </figure>
+</section>
+
+<!-- 7 -->
+<section id="paradigm">
+  <h2><span class="num">07</span>The paradigm shift: BERT, LaMDA, GPT</h2>
+  <p>The Transformer made one idea practical at scale: <strong>pre-train once on huge amounts of unlabelled text, then adapt to any task</strong>. This is the transfer learning you saw with GloVe in Unit 3, but now the whole network is pre-trained, not only the word vectors.</p>
+  <figure>
+    <img src="static/images/unit5/paradigm_shift.svg" alt="Before 2018, each task (sentiment, NER, translation) had its own model trained from zero on labelled data. After 2018, one foundation model is pre-trained on internet-scale text and adapted by fine-tuning, prompting or RAG and tools" loading="lazy">
+    <figcaption>From one model per task to one foundation model for many tasks.</figcaption>
+  </figure>
+  <figure>
+    <img src="static/images/unit5/bert_vs_gpt.svg" alt="BERT is an encoder that reads both directions and is pre-trained by filling in masked words, best for understanding; GPT is a decoder that reads left to right and is pre-trained by predicting the next token, best for generation" loading="lazy">
+    <figcaption>Same building block, different pre-training task and attention pattern.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Model</th><th>From</th><th>Type</th><th>What it changed</th></tr></thead>
+    <tbody>
+      <tr><td><strong>BERT</strong> (2018)</td><td>Google</td><td>Encoder</td><td>Fine-tune one pre-trained model for classification, NER, search. Became the default NLU model in industry; Google Search began using it in 2019.</td></tr>
+      <tr><td><strong>GPT, GPT-2, GPT-3</strong> (2018–2020)</td><td>OpenAI</td><td>Decoder</td><td>Next-token prediction at growing scale. GPT-3 showed that a large enough model can do new tasks from a few examples in the prompt, with no fine-tuning.</td></tr>
+      <tr><td><strong>T5</strong> (2019)</td><td>Google</td><td>Encoder–decoder</td><td>Framed every NLP task, including translation, as text-to-text.</td></tr>
+      <tr><td><strong>LaMDA</strong> (2021–22)</td><td>Google</td><td>Decoder, dialogue-tuned</td><td>A 137B-parameter model built specifically for open-ended conversation, with a focus on safety and grounding answers in external sources. It powered the first version of Google's Bard chatbot in 2023.</td></tr>
+      <tr><td><strong>ChatGPT</strong> (Nov 2022)</td><td>OpenAI</td><td>Decoder, instruction-tuned</td><td>A GPT model fine-tuned with human feedback to follow instructions. Brought LLMs to the general public.</td></tr>
+    </tbody>
+  </table></div>
+  <figure>
+    <img src="static/images/unit5/model_scale.png" alt="Horizontal bar chart on a log scale of published model sizes: GPT-1 117 million, BERT-large 340 million, GPT-2 1.5 billion, T5 11 billion, GPT-3 175 billion, LaMDA 137 billion, PaLM 540 billion parameters" loading="lazy">
+    <figcaption>Published parameter counts. Most newer frontier models do not disclose their size.</figcaption>
+  </figure>
+
+  <h3>Try the models yourself (in Colab)</h3>
+  <p>The Hugging Face <code>transformers</code> library gives one-line access to thousands of pre-trained models. Run this in Google Colab; the first run downloads each model:</p>
+<pre><code>!pip install transformers sentencepiece
+from transformers import pipeline
+
+# BERT: fill in the blank using context from BOTH sides
+fill = pipeline("fill-mask", model="bert-base-uncased")
+print(fill("The food was cold, so I asked for a [MASK]."))
+
+# Sentiment classifier: a BERT-family model fine-tuned on movie reviews
+sentiment = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+print(sentiment(["Delivery was late but the biryani was amazing", "Great, cold biryani again"]))
+
+# English -&gt; Hindi translation with an open MT model
+translate = pipeline("translation", model="Helsinki-NLP/opus-mt-en-hi")
+print(translate("Your order will arrive in twenty minutes."))
+
+# GPT-2: generate text one token at a time
+generate = pipeline("text-generation", model="gpt2")
+print(generate("The best thing about working in NLP is", max_new_tokens=25))</code></pre>
+  <p>We have not printed outputs here because they change with model versions. Things to look for when you run it: does the sentiment model catch the sarcasm in "Great, cold biryani again"? (A model fine-tuned on movie reviews often does not.) How natural is the Hindi? How quickly does GPT-2, a small 2019 model, drift off-topic compared with a modern LLM?</p>
+</section>
+
+<!-- 8 -->
+<section id="conversational">
+  <h2><span class="num">08</span>NLP in AI: conversational AI</h2>
+  <p>Remember Samantha from the opening scene of Unit 1? Here is how the industry actually got from rule-based bots towards her:</p>
+  <figure>
+    <img src="static/images/unit5/conversational_ai.svg" alt="Four generations of conversational AI: rule-based bots, intent and slot bots, LLM assistants with RAG and guardrails, and agents that plan and call tools" loading="lazy">
+    <figcaption>Most production systems today mix generations: fixed flows for sensitive actions, LLMs for open questions.</figcaption>
+  </figure>
+  <p>A modern support assistant for our food-delivery app does not rely on the LLM's memory. It uses <strong>retrieval-augmented generation (RAG)</strong>: search the company's own documents (with the BM25 and vector search from Units 2 and 3), put the relevant passages into the prompt, and ask the LLM to answer from them.</p>
+  <figure>
+    <img src="static/images/unit5/rag_architecture.svg" alt="RAG architecture: a customer question is embedded and searched against a vector database of policies, FAQs and order history; the top chunks go into a prompt for the LLM; guardrails check the answer before it is returned with citations; evaluation and monitoring run alongside" loading="lazy">
+    <figcaption>RAG plus guardrails and evaluation: the most common LLM architecture in industry today.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Production problem</th><th>What teams do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Hallucination</strong>: confident, wrong answers</td><td>Ground answers in retrieved documents, require citations, say "I don't know" when retrieval finds nothing</td></tr>
+      <tr><td><strong>Stale knowledge</strong></td><td>RAG over live documents instead of retraining the model</td></tr>
+      <tr><td><strong>Privacy</strong></td><td>Mask PII before prompts (the regex and NER from Unit 1), use private deployments for sensitive data</td></tr>
+      <tr><td><strong>Safety &amp; policy</strong></td><td>Input and output guardrails; hard-coded flows for refunds and payments; escalation to humans</td></tr>
+      <tr><td><strong>Cost &amp; latency</strong></td><td>Route easy queries to small models or the TF-IDF classifier; cache answers; limit prompt length (tokens = money, Unit 1)</td></tr>
+      <tr><td><strong>Quality over time</strong></td><td>Evaluation sets of real questions, LLM-as-judge plus human review, monitoring of user feedback</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens: agents</span>
+    <p>The newest step is <strong>agents</strong>: the LLM does not just answer, it decides which tools to call (check order status, issue a refund, create a ticket) and in what order. Protocols such as the Model Context Protocol (MCP) standardise how models connect to tools and data. Agents make it even more important to get the fundamentals right: every tool call is structured data extracted from language, which is exactly the NLU problem from Unit 1.</p>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="choosing">
+  <h2><span class="num">09</span>Choosing an approach in industry</h2>
+  <p>Every technique in this course is still a valid choice. The job of an engineer is to pick the simplest one that meets the requirement.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Approach</th><th>Use it when</th><th>Cost per request</th><th>Example from this course</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Rules / regex</strong></td><td>Fixed formats, must be 100% explainable</td><td class="good">~free</td><td>PAN, phone and order-ID extraction (Unit 1)</td></tr>
+      <tr><td><strong>TF-IDF + linear model</strong></td><td>Classification with hundreds–thousands of labels</td><td class="good">&lt; 1 ms on CPU</td><td>Ticket router, 0.80 accuracy (Unit 2)</td></tr>
+      <tr><td><strong>Embeddings + vector search</strong></td><td>Meaning-based search, recommendations</td><td class="good">milliseconds</td><td>"courier is very slow" search (Unit 3)</td></tr>
+      <tr><td><strong>Small trained seq model</strong></td><td>Narrow, well-defined transformation with lots of examples</td><td class="good">milliseconds</td><td>Date normaliser, 100% accuracy (Unit 5)</td></tr>
+      <tr><td><strong>Fine-tuned Transformer</strong></td><td>High-accuracy NLU with thousands of labelled examples</td><td>ms, often a GPU</td><td>Production intent / NER models</td></tr>
+      <tr><td><strong>Prompted LLM + RAG</strong></td><td>Open-ended questions, little labelled data, generation</td><td class="bad">seconds, paid per token</td><td>Support assistant (this unit)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 10 -->
+<section id="papers">
+  <h2><span class="num">10</span>Research papers worth discussing</h2>
+  <p>You do not need to read every equation. For each paper, try to answer: <em>what problem did it solve, and where is that idea used in products today?</em></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Year</th><th>Paper</th><th>Why it matters in industry</th></tr></thead>
+    <tbody>
+      <tr><td>2014</td><td><a href="https://arxiv.org/abs/1409.3215" target="_blank" rel="noopener">Sequence to Sequence Learning with Neural Networks</a> (Sutskever et al.)</td><td>The encoder–decoder behind neural MT, summarisation and chatbots</td></tr>
+      <tr><td>2014</td><td><a href="https://arxiv.org/abs/1409.0473" target="_blank" rel="noopener">Neural Machine Translation by Jointly Learning to Align and Translate</a> (Bahdanau et al.)</td><td>Introduced attention, the idea that became the Transformer</td></tr>
+      <tr><td>2016</td><td><a href="https://arxiv.org/abs/1609.08144" target="_blank" rel="noopener">Google's Neural Machine Translation System</a> (Wu et al.)</td><td>How neural MT was engineered for production at Google scale</td></tr>
+      <tr><td>2017</td><td><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Attention Is All You Need</a> (Vaswani et al.)</td><td>The Transformer: the architecture behind almost every modern language model</td></tr>
+      <tr><td>2018</td><td><a href="https://arxiv.org/abs/1810.04805" target="_blank" rel="noopener">BERT</a> (Devlin et al.)</td><td>Pre-train + fine-tune; still widely used for classification, NER and search</td></tr>
+      <tr><td>2020</td><td><a href="https://arxiv.org/abs/2005.14165" target="_blank" rel="noopener">Language Models are Few-Shot Learners</a> (GPT-3, Brown et al.)</td><td>Prompting instead of training: the start of the LLM era</td></tr>
+      <tr><td>2020</td><td><a href="https://arxiv.org/abs/2005.11401" target="_blank" rel="noopener">Retrieval-Augmented Generation</a> (Lewis et al.)</td><td>The idea behind RAG, the most common enterprise LLM pattern</td></tr>
+      <tr><td>2021</td><td><a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener">LoRA: Low-Rank Adaptation</a> (Hu et al.)</td><td>Cheap fine-tuning of large models; how most teams customise open LLMs</td></tr>
+      <tr><td>2022</td><td><a href="https://arxiv.org/abs/2201.08239" target="_blank" rel="noopener">LaMDA: Language Models for Dialog Applications</a> (Thoppilan et al.)</td><td>Dialogue-specific training, safety and grounding in external sources</td></tr>
+      <tr><td>2022</td><td><a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noopener">Training language models to follow instructions with human feedback</a> (InstructGPT, Ouyang et al.)</td><td>RLHF: how a raw language model becomes a helpful assistant</td></tr>
+      <tr><td>2022</td><td><a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Chain-of-Thought Prompting</a> (Wei et al.)</td><td>Asking models to reason step by step improves multi-step answers</td></tr>
+      <tr><td>2023</td><td><a href="https://arxiv.org/abs/2305.16307" target="_blank" rel="noopener">IndicTrans2</a> (Gala et al., AI4Bharat)</td><td>Open, high-quality translation for all 22 scheduled Indian languages</td></tr>
+      <tr><td>2023</td><td><a href="https://arxiv.org/abs/2307.03172" target="_blank" rel="noopener">Lost in the Middle</a> (Liu et al.)</td><td>LLMs use information at the start and end of long prompts better than the middle: a practical RAG design lesson</td></tr>
+      <tr><td>2023</td><td><a href="https://arxiv.org/abs/2312.00752" target="_blank" rel="noopener">Mamba</a> (Gu &amp; Dao)</td><td>State-space models: recurrence-style efficiency returns for very long sequences (Unit 4)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout demo">
+    <span class="label">Suggested class activity</span>
+    <p>Split into groups, one paper each. In five minutes, present: the problem, the key idea in one sentence, and one product that uses it today. It is a great way to practise explaining technical work, which is half of an industry job.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="practice">
+  <h2><span class="num">11</span>Try it yourself</h2>
+  <div class="callout demo">
+    <span class="label">Hands-on</span>
+    <p>Google Colab has PyTorch installed. Download <a href="static/code/unit5/dates_seq2seq.py" download>dates_seq2seq.py</a> and try:</p>
+    <ul>
+      <li>Add a new input format, such as "2011/03/07" or "march 7th", to <code>messy()</code>. Test the old model on it before retraining. What happens?</li>
+      <li>Train with 2,000 examples instead of 20,000. How much does attention help now?</li>
+      <li>Change the task: normalise Indian phone numbers ("098765 43210", "+91-98765-43210") to "+919876543210".</li>
+      <li>Run the Hugging Face pipelines above and collect three failures of each model. Which are data problems, and which are model problems?</li>
+    </ul>
+  </div>
+  <h3>Discussion questions</h3>
+  <details><summary>1. Why did the seq2seq model without attention reach only 67.6%, when the same model with attention reached 100%?</summary>
+    <p>Without attention, the entire input has to be compressed into the encoder's final hidden state, and details such as the exact day are easily lost. With attention, the decoder can look directly at the relevant input characters at each output step.</p></details>
+  <details><summary>2. A translation with BLEU 0.43 says the opposite of the source. A correct paraphrase gets 0.08. What should a team do?</summary>
+    <p>Use BLEU only for quick regression checks, add meaning-aware metrics such as COMET, and rely on human evaluation for launch decisions, especially in domains where meaning errors are costly.</p></details>
+  <details><summary>3. When would you choose BERT over GPT, and vice versa?</summary>
+    <p>BERT-style encoders are efficient and accurate for understanding tasks with labelled data (classification, NER, search ranking). GPT-style decoders are needed for generation (chat, summaries, code) and are convenient when there is little labelled data, because they can be prompted.</p></details>
+  <details><summary>4. Your LLM support bot confidently invents a refund policy. What architecture changes reduce this?</summary>
+    <p>Retrieval-augmented generation over the real policy documents, instructions to answer only from retrieved text with citations, an "I don't know / escalate" path when retrieval is weak, guardrails on refund-related answers, and fixed flows (not free text) for actually issuing refunds.</p></details>
+  <details><summary>5. Why do many companies still run TF-IDF classifiers and small models when LLMs exist?</summary>
+    <p>Cost, latency, privacy and explainability. A sub-millisecond CPU model handles millions of routine requests almost for free; the LLM is reserved for the cases that actually need it.</p></details>
+</section>
+
+<!-- 12 -->
+<section id="takeaways">
+  <h2><span class="num">12</span>Key takeaways</h2>
+  <div class="takeaways">
+    <ul>
+      <li>Machine translation drove the key ideas of modern NLP: encoder–decoders, attention and the Transformer.</li>
+      <li>Seq2seq squeezes the input into one vector; attention removes that bottleneck. In our experiment it took accuracy from 67.6% to 100%.</li>
+      <li>Attention weights are inspectable: our model learned by itself to look at "march" when writing "03".</li>
+      <li>BLEU measures word overlap, not meaning. Use human evaluation and meaning-aware metrics for real decisions.</li>
+      <li>Transformers replace recurrence with self-attention: parallel, direct connections between words, and they scale.</li>
+      <li>The paradigm shift: pre-train one foundation model (BERT, GPT, LaMDA), then adapt it by fine-tuning, prompting or RAG.</li>
+      <li>Production conversational AI is RAG + guardrails + evaluation + fixed flows for risky actions, increasingly with agents that call tools.</li>
+      <li>Pick the simplest approach that meets the requirement: every technique from Units 1–5 is still in production somewhere.</li>
+    </ul>
+  </div>
+  <div class="callout thread">
+    <span class="label">Closing thought</span>
+    <p>Every modern LLM still starts with tokens (Unit 1), still turns them into vectors (Units 2–3), still predicts the next token one at a time (Units 2 and 4), and uses attention (Unit 5). The fundamentals are not history. They are the foundation.</p>
+  </div>
+
+  <nav class="pager" aria-label="Unit navigation">
+    <a class="prev" href="unit4_recurrent_neural_networks.html"><small>Previous</small>← Unit 4 · Recurrent Neural Networks</a>
+    <a class="next" href="index.html"><small>Finish</small>Back to NLP in Practice →</a>
+  </nav>
+</section>
+
+<footer>NLP in Practice · Industry Expert Session · Symbiosis</footer>
+</main>
+</div>
+<script src="static/js/main.js"></script>
+</body>
+</html>

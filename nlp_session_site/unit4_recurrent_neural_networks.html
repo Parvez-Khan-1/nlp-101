@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit 4 · Recurrent Neural Networks | NLP in Practice</title>
+<meta name="description" content="Industry-focused notes on recurrent neural networks: RNN language models, vanishing gradients, LSTM, GRU, bidirectional models, CNNs for text, and where sequence models still run in production.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="On this page">
+  <a class="home" href="index.html">← NLP in Practice</a>
+  <a class="toc-agenda" href="agenda.html">Session agenda</a>
+  <ol>
+    <li><a href="#why">Why order matters</a></li>
+    <li><a href="#rnn">How an RNN works</a></li>
+    <li><a href="#rnn-lm">RNN language models</a></li>
+    <li><a href="#vanishing">Vanishing gradients</a></li>
+    <li><a href="#lstm">LSTM</a></li>
+    <li><a href="#gru">GRU</a></li>
+    <li><a href="#memory">Experiment: long memory</a></li>
+    <li><a href="#bidirectional">Bidirectional &amp; stacked</a></li>
+    <li><a href="#cnn">CNNs for text</a></li>
+    <li><a href="#case-study">Case study: ticket router</a></li>
+    <li><a href="#industry">RNNs in industry</a></li>
+    <li><a href="#replaced">Why Transformers won</a></li>
+    <li><a href="#production">Sequence models in production</a></li>
+    <li><a href="#practice">Try it yourself</a></li>
+    <li><a href="#takeaways">Key takeaways</a></li>
+  </ol>
+</nav>
+
+<main>
+<header>
+  <div class="eyebrow">Unit 4 · Industry Expert Session · Symbiosis</div>
+  <h1>Recurrent Neural Networks</h1>
+  <p class="sub">Models that read text in order and remember what came before: how they work, why they forget, how LSTMs and GRUs fixed it, and where they still run in production today.</p>
+</header>
+
+<!-- 0 -->
+<section id="why">
+  <h2><span class="num">00</span>Why order matters</h2>
+  <p>Everything so far ignored word order. Bag of words shuffles words into a bag (Unit 2), and averaging word embeddings does the same thing with vectors (Unit 3). N-grams keep a little order, but only inside a fixed window of 2–3 words.</p>
+  <p>Real language has <strong>long-range dependencies</strong>:</p>
+  <div class="callout thread">
+    <span class="label">Running example</span>
+    <p><em>"The biryani that I ordered from the new place near my office on Friday was <strong>___</strong>."</em></p>
+    <p>To predict the blank (cold? amazing?), and to know the complaint is about <em>biryani</em> and not the office, a model must connect words 12 positions apart. A trigram model sees only "Friday was ___".</p>
+  </div>
+  <p>A <strong>recurrent neural network (RNN)</strong> reads text one token at a time and carries a memory, the <em>hidden state</em>, from each step to the next. The same network handles several kinds of sequence tasks:</p>
+  <figure>
+    <img src="static/images/unit4/rnn_task_types.svg" alt="Three RNN task types: many to one for sentiment and ticket routing, many to many aligned for NER and next-word prediction, and sequence to sequence for translation and summarization" loading="lazy">
+    <figcaption>The three shapes of sequence problems, and real products that use each one.</figcaption>
+  </figure>
+</section>
+
+<!-- 1 -->
+<section id="rnn">
+  <h2><span class="num">01</span>How an RNN works</h2>
+  <figure>
+    <img src="static/images/unit4/rnn_unrolled.svg" alt="An RNN cell with a loop, equal to the same cell unrolled over the words food, was, not, good, passing a hidden state from h1 to h4 and predicting Negative" loading="lazy">
+    <figcaption>An RNN "unrolled" over time: one cell, reused at every word.</figcaption>
+  </figure>
+  <p>At every step the RNN combines the current word with its memory of everything before it:</p>
+<pre class="output">hₜ = tanh( W_x · xₜ  +  W_h · hₜ₋₁  +  b )
+       new word     previous memory</pre>
+  <p>The same weights <code>W_x</code> and <code>W_h</code> are used at every step. That is why an RNN can read a 5-word or a 500-word ticket with the same number of parameters, unlike an n-gram model whose table grows with every extra word of context.</p>
+<pre><code>import torch, torch.nn as nn
+
+rnn = nn.RNN(input_size=50, hidden_size=64, batch_first=True)   # e.g. 50-d GloVe vectors in
+x = torch.randn(8, 12, 50)            # batch of 8 tickets, 12 words each, 50 numbers per word
+outputs, h_last = rnn(x)
+
+print("outputs:", tuple(outputs.shape))   # one hidden state per word
+print("h_last :", tuple(h_last.shape))    # final summary of each ticket
+print("weights:", {n: tuple(p.shape) for n, p in rnn.named_parameters()})</code></pre>
+<pre class="output">outputs: (8, 12, 64)
+h_last : (1, 8, 64)
+weights: {'weight_ih_l0': (64, 50), 'weight_hh_l0': (64, 64), 'bias_ih_l0': (64,), 'bias_hh_l0': (64,)}</pre>
+  <ul>
+    <li><code>outputs</code> has a hidden state for <em>every</em> word: use it for tagging tasks (NER).</li>
+    <li><code>h_last</code> is the final memory: use it for classification (sentiment, ticket routing).</li>
+    <li><code>weight_hh</code> (64 × 64) is the "memory" matrix applied at every step. Keep an eye on it: it is the reason for the vanishing gradient problem in section 03.</li>
+  </ul>
+</section>
+
+<!-- 2 -->
+<section id="rnn-lm">
+  <h2><span class="num">02</span>RNN language models</h2>
+  <p>In Unit 2 a bigram model predicted the next word from only the previous word. An <strong>RNN language model</strong> predicts the next token from its hidden state, which (in principle) summarises the <em>entire</em> history.</p>
+  <figure>
+    <img src="static/images/unit4/rnn_language_model.svg" alt="An RNN reading the characters b, i, r, y, a one at a time and predicting the next character at each step" loading="lazy">
+    <figcaption>A character-level RNN language model spelling "biryani".</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>N-gram LM (Unit 2)</th><th>RNN LM</th></tr></thead>
+    <tbody>
+      <tr><td>Context used</td><td>Fixed: last n − 1 words</td><td>Whole history, compressed into h</td></tr>
+      <tr><td>Unseen combinations</td><td>Needs smoothing</td><td>Generalises via embeddings</td></tr>
+      <tr><td>Model size vs context</td><td class="bad">Grows exponentially with n</td><td class="good">Constant</td></tr>
+      <tr><td>Speed</td><td class="good">A table lookup</td><td>Matrix multiplications at every step</td></tr>
+    </tbody>
+  </table></div>
+  <p>Language models are compared with <strong>perplexity</strong>: roughly, "how many choices is the model confused between at each step". Lower is better. A perplexity of 50 means the model is, on average, as uncertain as picking uniformly from 50 words.</p>
+
+  <h3>Hands-on: an LSTM that invents new dishes</h3>
+  <p>We train a small character-level LSTM (the improved RNN from section 04) on 195 real Indian dish names, then ask it to write new ones:</p>
+<pre><code>import torch, torch.nn as nn, random
+torch.manual_seed(0); random.seed(0)
+
+names = open("dishes.txt").read().split("\n")[:-1]           # ~200 real Indian dish names
+chars = sorted(set("".join(names))) + ["&lt;end&gt;"]
+idx = {c: i for i, c in enumerate(chars)}
+
+class CharLSTM(nn.Module):
+    def __init__(self, vocab, emb=32, hidden=128):
+        super().__init__()
+        self.emb = nn.Embedding(vocab, emb)
+        self.lstm = nn.LSTM(emb, hidden, num_layers=2, batch_first=True, dropout=0.2)
+        self.out = nn.Linear(hidden, vocab)
+    def forward(self, x, state=None):
+        h, state = self.lstm(self.emb(x), state)
+        return self.out(h), state
+
+model = CharLSTM(len(chars))
+opt = torch.optim.Adam(model.parameters(), lr=3e-3)
+
+def encode(name):
+    return [idx[c] for c in name] + [idx["&lt;end&gt;"]]
+
+for step in range(2000):                                     # ~10 seconds on a laptop CPU
+    seq = torch.tensor([encode(random.choice(names))])
+    logits, _ = model(seq[:, :-1])                           # predict each next character
+    loss = nn.functional.cross_entropy(logits[0], seq[0, 1:])
+    opt.zero_grad(); loss.backward(); opt.step()
+
+@torch.no_grad()
+def generate(start, temperature=0.8, max_len=30):
+    x, state, out = torch.tensor([[idx[c] for c in start]]), None, start
+    logits, state = model(x, state)
+    for _ in range(max_len):
+        probs = torch.softmax(logits[0, -1] / temperature, dim=0)
+        c = torch.multinomial(probs, 1).item()
+        if chars[c] == "&lt;end&gt;":
+            break
+        out += chars[c]
+        logits, state = model(torch.tensor([[c]]), state)
+    return out
+
+torch.manual_seed(42)
+for start in ["p", "ch", "m", "tandoori ", "kashmiri ", "mango ", "schezwan ", "butter "]:
+    dish = generate(start, temperature=1.0)
+    print(f"{start!r:&lt;12} -&gt; {dish:&lt;28} {'(in training data)' if dish in names else 'NEW'}")</code></pre>
+<pre class="output">'p'          -&gt; putturan paneer              NEW
+'ch'         -&gt; chicken stew                 (in training data)
+'m'          -&gt; malai chilli parotta         NEW
+'tandoori '  -&gt; tandoori roti                (in training data)
+'kashmiri '  -&gt; kashmiri momos               NEW
+'mango '     -&gt; mango dosa                   NEW
+'schezwan '  -&gt; schezwan noodlry             NEW
+'butter '    -&gt; butter chicken momos         NEW</pre>
+  <p>After 10 seconds of training on 195 names, the model has learned spelling, word boundaries and plausible dish structure. "Kashmiri momos" and "butter chicken momos" are exactly the kind of fusion dishes real menus carry. "noodlry" shows its limits: with this little data it still makes spelling mistakes. The dish list is included on this site as <a href="static/data/dishes.txt" download>dishes.txt</a>.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>This is the same generate-one-token-at-a-time loop as the bigram generator in Unit 2 and as ChatGPT. Before Transformers, LSTM language models powered <strong>smartphone keyboards</strong>: Google published in 2018 how Gboard's next-word prediction used a small LSTM variant trained with <em>federated learning</em>, so the model learned from typing on users' phones without the text leaving the device. RNN LMs were also used to re-rank candidate sentences in speech recognition and machine translation.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="vanishing">
+  <h2><span class="num">03</span>Vanishing and exploding gradients</h2>
+  <p>Training an RNN uses backpropagation <em>through time</em>: the chain rule from Unit 3, applied backwards over every step. The gradient that reaches word 1 has been multiplied by <code>W_h</code> and the tanh derivative once per step. Multiply a number smaller than 1 by itself 50 times and it disappears; larger than 1 and it explodes.</p>
+  <p>We can measure this directly. Feed 50 random inputs through untrained models and ask: how much does each earlier input affect the gradient of the final output?</p>
+<pre><code>import torch, torch.nn as nn
+
+torch.manual_seed(0)
+T, D, H = 50, 16, 64                        # 50 time steps, 16-dim inputs, 64 hidden units
+
+def lstm_forget_bias(b):
+    m = nn.LSTM(D, H)
+    for name, p in m.named_parameters():    # PyTorch gate order: input, forget, cell, output
+        if "bias" in name:
+            p.data[H:2*H] = b / 2           # two bias vectors are added, so split b between them
+    return m
+
+def gradient_per_step(cell):
+    x = torch.randn(T, 1, D, requires_grad=True)   # one sequence
+    out, _ = cell(x)
+    out[-1].sum().backward()                       # loss depends only on the LAST output
+    return x.grad.norm(dim=(1, 2))                 # how much each input step influenced it
+
+models = {"RNN": lambda: nn.RNN(D, H), "GRU": lambda: nn.GRU(D, H),
+          "LSTM": lambda: nn.LSTM(D, H), "LSTM (forget bias 3)": lambda: lstm_forget_bias(3.0)}
+for name, make in models.items():
+    g = torch.stack([gradient_per_step(make()) for _ in range(20)]).mean(0)   # average of 20 random models
+    g = (g / g[-1]).tolist()                       # relative to the most recent word
+    print(f"{name:&lt;21} 10 steps back: {g[39]:.1e}   25 back: {g[24]:.1e}   49 back: {g[0]:.1e}")</code></pre>
+<pre class="output">RNN                   10 steps back: 1.4e-03   25 back: 1.3e-07   49 back: 2.4e-13
+GRU                   10 steps back: 5.4e-03   25 back: 4.7e-06   49 back: 9.6e-11
+LSTM                  10 steps back: 5.3e-03   25 back: 4.6e-06   49 back: 8.6e-11
+LSTM (forget bias 3)  10 steps back: 4.3e-01   25 back: 4.4e-01   49 back: 1.1e+00</pre>
+  <figure>
+    <img src="static/images/unit4/gradient_flow_measured.png" alt="Line chart on a log scale: gradient size falls to about 1e-13 after 49 steps for a plain RNN and about 1e-10 for default GRU and LSTM, but stays near 1 for an LSTM with forget-gate bias 3" loading="lazy">
+    <figcaption>Measured, not illustrated: the output of the code above.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Plain RNN:</strong> a word 49 steps back has 10<sup>−13</sup> of the influence of the latest word. For learning purposes, it does not exist.</li>
+    <li><strong>LSTM and GRU with default settings</strong> are only slightly better <em>at initialisation</em>. Their gates start half-open, so memory still leaks away.</li>
+    <li><strong>LSTM with its forget gate biased open</strong> keeps the gradient near 1 across all 50 steps. This is the whole point of the LSTM design, and why practitioners initialise the forget-gate bias to a positive value (Jozefowicz et al., 2015 recommended 1).</li>
+  </ul>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha: exploding gradients</span>
+    <p>The opposite problem shows up in production training jobs as a loss that suddenly jumps to <code>NaN</code>. The standard fix is <strong>gradient clipping</strong>: if the gradient's size exceeds a threshold, scale it down. It is one line, <code>torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)</code>, and it is still used when training Transformers and LLMs today.</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="lstm">
+  <h2><span class="num">04</span>LSTM: long short-term memory</h2>
+  <p>The <strong>LSTM</strong> (Hochreiter &amp; Schmidhuber, 1997) adds a separate <strong>cell state</strong>: a memory "highway" that runs through time and is changed only by small, controlled updates. Three learned <strong>gates</strong> (numbers between 0 and 1) decide what happens to it.</p>
+  <figure>
+    <img src="static/images/unit4/lstm_cell.svg" alt="LSTM cell: a cell-state highway from c t-1 to c t modified by a forget gate (multiply) and input gate (add); an output gate controls the hidden state h t; equations listed on the right" loading="lazy">
+    <figcaption>Forget, input and output gates around the cell-state highway.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Gate</th><th>Question it answers</th><th>In our ticket example</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Forget gate f</strong></td><td>What should I erase from memory?</td><td>After "…but the raita", forget that we were discussing the biryani</td></tr>
+      <tr><td><strong>Input gate i</strong></td><td>What new information should I store?</td><td>Store "refund" when it appears; ignore "please", "the"</td></tr>
+      <tr><td><strong>Output gate o</strong></td><td>What part of memory is relevant right now?</td><td>Reveal "negative sentiment" when the classifier asks at the end</td></tr>
+    </tbody>
+  </table></div>
+  <p>The key line is <code>c = f * c + i * g</code>: the memory is updated by <strong>adding</strong>, not by repeatedly multiplying through a weight matrix. When <code>f</code> is close to 1, the gradient flows backwards almost unchanged. That is exactly what the purple line in the chart above shows.</p>
+</section>
+
+<!-- 5 -->
+<section id="gru">
+  <h2><span class="num">05</span>GRU: the lighter alternative</h2>
+  <p>The <strong>GRU</strong> (Gated Recurrent Unit; Cho et al., 2014) merges the cell state and hidden state and uses two gates instead of three.</p>
+  <figure>
+    <img src="static/images/unit4/gru_cell.svg" alt="GRU cell with a reset gate and an update gate blending the previous hidden state with a new candidate; compared with LSTM it has two gates, no separate cell state and 25 percent fewer parameters" loading="lazy">
+    <figcaption>Update gate: how much to keep. Reset gate: how much of the past to use when proposing something new.</figcaption>
+  </figure>
+<pre><code>import torch.nn as nn
+for name, cls in [("RNN", nn.RNN), ("GRU", nn.GRU), ("LSTM", nn.LSTM)]:
+    m = cls(input_size=100, hidden_size=128)
+    print(f"{name:&lt;5} parameters = {sum(p.numel() for p in m.parameters()):,}")</code></pre>
+<pre class="output">RNN   parameters = 29,440
+GRU   parameters = 88,320
+LSTM  parameters = 117,760</pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Vanilla RNN</th><th>GRU</th><th>LSTM</th></tr></thead>
+    <tbody>
+      <tr><td>Gates</td><td>0</td><td>2 (update, reset)</td><td>3 (forget, input, output)</td></tr>
+      <tr><td>Parameters (100 → 128)</td><td class="good">29,440</td><td>88,320</td><td class="bad">117,760</td></tr>
+      <tr><td>Long-range memory</td><td class="bad">Poor</td><td class="good">Good</td><td class="good">Good</td></tr>
+      <tr><td>When teams chose it</td><td>Almost never in production</td><td>Smaller models, on-device, faster training</td><td>The safe default for most tasks, 2014–2018</td></tr>
+    </tbody>
+  </table></div>
+  <p>In practice the accuracy difference between GRU and LSTM is usually small; teams tried both and kept whichever did better on their validation set.</p>
+</section>
+
+<!-- 6 -->
+<section id="memory">
+  <h2><span class="num">06</span>Experiment: can it remember?</h2>
+  <p>A clean test of memory: show the model a sequence of random digits and ask it, at the very end, for the <strong>first</strong> digit. Everything in between is noise. We train each model for 3,000 steps and test on 2,000 new sequences (10% = random guessing):</p>
+<pre><code>import torch, torch.nn as nn
+torch.manual_seed(0)
+
+def batch(n, T):
+    """Sequences of random digits 0-9. The label is the FIRST digit, seen T steps ago."""
+    x = torch.randint(0, 10, (n, T))
+    return x, x[:, 0]
+
+def lstm_forget_bias(b):
+    def make(inp, hid, batch_first=True):
+        m = nn.LSTM(inp, hid, batch_first=batch_first)
+        for name, p in m.named_parameters():      # gate order: input, forget, cell, output
+            if "bias" in name:
+                p.data[hid:2*hid] = b / 2
+        return m
+    return make
+
+class Model(nn.Module):
+    def __init__(self, cell):
+        super().__init__()
+        self.emb = nn.Embedding(10, 16)
+        self.rnn = cell(16, 64, batch_first=True)
+        self.out = nn.Linear(64, 10)
+    def forward(self, x):
+        h, _ = self.rnn(self.emb(x))
+        return self.out(h[:, -1])                   # predict from the final hidden state only
+
+def train_and_test(cell, T, steps=3000):
+    m = Model(cell); opt = torch.optim.Adam(m.parameters(), lr=3e-3)
+    for _ in range(steps):
+        x, y = batch(64, T)
+        loss = nn.functional.cross_entropy(m(x), y)
+        opt.zero_grad(); loss.backward()
+        nn.utils.clip_grad_norm_(m.parameters(), 1.0)   # gradient clipping: standard practice
+        opt.step()
+    x, y = batch(2000, T)
+    return (m(x).argmax(1) == y).float().mean().item()
+
+cells = {"RNN": nn.RNN, "GRU": nn.GRU, "LSTM": nn.LSTM, "LSTM+bias": lstm_forget_bias(3.0)}
+for T in [5, 20, 50]:
+    scores = "   ".join(f"{name} {train_and_test(c, T):&gt;4.0%}" for name, c in cells.items())
+    print(f"first digit, {T:&gt;2} steps back:  {scores}")</code></pre>
+<pre class="output">first digit,  5 steps back:  RNN 100%   GRU 100%   LSTM 100%   LSTM+bias 100%
+first digit, 20 steps back:  RNN  77%   GRU 100%   LSTM  10%   LSTM+bias 100%
+first digit, 50 steps back:  RNN  11%   GRU   9%   LSTM   9%   LSTM+bias 100%</pre>
+  <ul>
+    <li><strong>5 steps:</strong> every model succeeds. Short memory is easy.</li>
+    <li><strong>50 steps:</strong> only the LSTM with its forget gate initialised open learns the task. Everything else is stuck at random guessing, exactly as the gradient measurement predicted.</li>
+    <li><strong>The default LSTM failed at 20 steps</strong> in this run while the GRU succeeded. In an earlier, shorter run (1,500 training steps) the GRU failed the same test and the plain RNN passed it. Training recurrent models is sensitive to initialisation, training length and randomness.</li>
+  </ul>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>That last point is a real engineering lesson: <strong>always run important experiments with several random seeds</strong> before concluding that model A beats model B. Teams that compare single runs regularly ship the wrong model. And small initialisation choices (like the forget-gate bias) can matter more than switching architectures.</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="bidirectional">
+  <h2><span class="num">07</span>Bidirectional and stacked RNNs</h2>
+  <p>A normal RNN only sees the past. For tagging tasks, the future matters too: in "paid via <strong>paytm</strong> yesterday", both "via" before and "yesterday" after help identify Paytm as a payment app. A <strong>bidirectional</strong> RNN runs one RNN left-to-right and another right-to-left, and combines both at every word.</p>
+  <figure>
+    <img src="static/images/unit4/bidirectional_lstm.svg" alt="Bidirectional LSTM over the words paid, via, paytm, yesterday: a forward LSTM and a backward LSTM feed each word's tag, predicting PAYMENT_APP for paytm and DATE for yesterday" loading="lazy">
+    <figcaption>Forward and backward passes combined for each word's label.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Stacked (deep) RNNs</strong> put several RNN layers on top of each other; lower layers capture spelling and syntax, higher layers more meaning. <code>nn.LSTM(..., num_layers=2)</code> in the dish generator is a 2-layer stack.</li>
+    <li><strong>BiLSTM-CRF</strong> (a bidirectional LSTM with a CRF layer that enforces valid tag sequences) was the industry standard for named-entity recognition from roughly 2015 until BERT arrived in 2018.</li>
+    <li>Bidirectional models need the <strong>whole sentence first</strong>, so they cannot be used for live next-word prediction or streaming speech.</li>
+  </ul>
+</section>
+
+<!-- 8 -->
+<section id="cnn">
+  <h2><span class="num">08</span>CNNs for text: the fast alternative</h2>
+  <p>Convolutional neural networks, famous from computer vision, also work on text. A 1D convolution slides a small filter over the sequence of word vectors; each filter learns to detect a useful n-gram pattern such as "not good" or "refund pending", wherever it appears.</p>
+  <figure>
+    <img src="static/images/unit4/cnn_text.svg" alt="1D CNN for text: a sentence matrix of word embeddings, 2-word and 3-word filters producing feature maps, max-pooling to one value per filter, and a softmax predicting Negative 0.93" loading="lazy">
+    <figcaption>Filters are learned n-gram detectors; max-pooling keeps the strongest signal (Kim, 2014).</figcaption>
+  </figure>
+<pre><code>class TicketCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.emb = nn.Embedding(len(vocab) + 1, 32, padding_idx=0)
+        self.convs = nn.ModuleList([nn.Conv1d(32, 32, k, padding=k // 2) for k in (2, 3)])   # 2- and 3-word filters
+        self.out = nn.Linear(64, len(labels))
+    def forward(self, x):
+        e = self.emb(x).transpose(1, 2)                                   # (batch, channels, time)
+        pooled = [torch.relu(c(e)).max(dim=2).values for c in self.convs]  # max-pool over time
+        return self.out(torch.cat(pooled, dim=1))</code></pre>
+  <p>Unlike an RNN, all positions are computed <strong>in parallel</strong>, so CNNs are fast to train and to serve. Their weakness is the mirror image: each filter only sees a few words at once, so long-range dependencies need many stacked layers.</p>
+</section>
+
+<!-- 9 -->
+<section id="case-study">
+  <h2><span class="num">09</span>Case study: do we need deep learning for the ticket router?</h2>
+  <p>Same 120 tickets and the same train/test split as Unit 2. We trained a bidirectional LSTM and the CNN above, each with its own embeddings learned from scratch (full scripts: <a href="static/code/unit4/lstm_tickets.py" download>lstm_tickets.py</a>, <a href="static/code/unit4/cnn_tickets.py" download>cnn_tickets.py</a>):</p>
+<pre><code>class TicketLSTM(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.emb = nn.Embedding(len(vocab) + 1, 32, padding_idx=0)
+        self.lstm = nn.LSTM(32, 64, batch_first=True, bidirectional=True)
+        self.out = nn.Linear(128, len(labels))
+    def forward(self, x):
+        h, _ = self.lstm(self.emb(x))
+        return self.out(h.max(dim=1).values)          # max-pool over time</code></pre>
+<pre class="output">CNN accuracy = 0.70   latency = 0.21 ms/ticket   parameters = 13,860
+BiLSTM accuracy = 0.73   latency = 0.27 ms/ticket   parameters = 59,108</pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Model</th><th>Test accuracy</th><th>Explainable?</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>TF-IDF + logistic regression</strong> (Unit 2)</td><td class="good">0.80</td><td class="good">Yes</td><td>Trains in under a second</td></tr>
+      <tr><td><strong>BiLSTM</strong></td><td>0.73</td><td class="bad">Hard</td><td>59,108 parameters learned from 90 tickets</td></tr>
+      <tr><td><strong>1D CNN</strong></td><td>0.70</td><td class="bad">Hard</td><td>Fastest neural option</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens: deep learning needs data</span>
+    <p>With 90 training tickets, the neural models <strong>lose to the TF-IDF baseline</strong>. They have tens of thousands of parameters to learn and almost no data to learn them from. This is the most common mistake students bring into their first job: reaching for the most advanced model first. Neural sequence models start to win with tens of thousands of labelled examples, or when they start from pre-trained knowledge (pre-trained embeddings from Unit 3, or pre-trained Transformers from Unit 5).</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="industry">
+  <h2><span class="num">10</span>RNNs in industry</h2>
+  <p>From about 2014 to 2018, LSTMs and GRUs were the state of the art for almost every language task, and many are still running.</p>
+  <div class="grid">
+    <div class="card" style="--col:var(--c3)"><h4>Machine translation</h4><p class="eg">Google Translate's 2016 switch to neural translation (GNMT) used deep stacked LSTMs in an encoder–decoder: the subject of Unit 5.</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Keyboards</h4><p class="eg">Next-word prediction on phones with small LSTMs, trained with federated learning so typing stays on the device.</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>On-device speech</h4><p class="eg">Streaming speech recognition models built on RNNs, which process audio as it arrives with constant memory.</p></div>
+    <div class="card" style="--col:var(--c1)"><h4>Forecasting</h4><p class="eg">Demand and traffic forecasting; Amazon's DeepAR (2017) is an autoregressive RNN for probabilistic forecasts.</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>Sequences of events</h4><p class="eg">Transaction sequences for fraud detection, clickstreams for recommendations, logs for anomaly detection.</p></div>
+    <div class="card" style="--col:var(--c2)"><h4>NER &amp; tagging</h4><p class="eg">BiLSTM-CRF taggers for entity extraction in documents, before Transformers took over.</p></div>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens: the ideas are coming back</span>
+    <p>RNNs have one property Transformers lack: generating each new token costs the same small amount of compute and memory, however long the text already is. That matters for very long inputs, streaming and small devices. Since 2023, <strong>state-space models</strong> such as Mamba and RNN-style architectures such as RWKV have revived this idea for language modelling at scale. What you learn about recurrence here is not obsolete.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="replaced">
+  <h2><span class="num">11</span>Why Transformers replaced RNNs</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Problem with RNNs</th><th>Why it hurt in industry</th><th>How Transformers fix it (Unit 5)</th></tr></thead>
+    <tbody>
+      <tr><td>Sequential: step t needs step t − 1</td><td>Cannot use GPU parallelism across a sentence; training is slow</td><td>Every position is processed at once</td></tr>
+      <tr><td>Everything squeezed into one hidden vector</td><td>Long documents lose detail; translation quality drops on long sentences</td><td>Attention looks directly at any earlier word</td></tr>
+      <tr><td>Long paths for gradients</td><td>Hard to train, sensitive to initialisation (as we saw)</td><td>Any two words are one step apart</td></tr>
+      <tr><td>Hard to scale up</td><td>Bigger RNNs gave diminishing returns</td><td>Transformers keep improving with more data and compute</td></tr>
+    </tbody>
+  </table></div>
+  <p>The bridge between the two worlds was <strong>attention</strong>, first added <em>on top of</em> RNN encoder–decoders for translation in 2014–15. Unit 5 starts there.</p>
+</section>
+
+<!-- 12 -->
+<section id="production">
+  <h2><span class="num">12</span>Sequence models in production</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Concern</th><th>What engineers do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Variable lengths</strong></td><td>Pad sequences in a batch to the same length, and mask or "pack" the padding so it does not affect results. Batch similar lengths together to waste less compute.</td></tr>
+      <tr><td><strong>Very long sequences</strong></td><td>Truncate, or use truncated backpropagation through time (train on chunks, carry the hidden state forward).</td></tr>
+      <tr><td><strong>Unstable training</strong></td><td>Gradient clipping, forget-gate bias initialisation, several random seeds.</td></tr>
+      <tr><td><strong>Streaming</strong></td><td>Keep the hidden state between calls, so each new token or audio frame is processed incrementally.</td></tr>
+      <tr><td><strong>Mobile and edge devices</strong></td><td>Small GRUs/LSTMs, quantised to 8-bit integers, exported to on-device runtimes.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 13 -->
+<section id="practice">
+  <h2><span class="num">13</span>Try it yourself</h2>
+  <div class="callout demo">
+    <span class="label">Hands-on</span>
+    <p>Google Colab already has PyTorch installed. Download <a href="static/data/dishes.txt" download>dishes.txt</a> and <a href="static/data/support_tickets.csv" download>support_tickets.csv</a>, then try:</p>
+    <ul>
+      <li>Train the dish generator with <code>temperature=0.5</code> and <code>temperature=1.5</code>. How do creativity and spelling change?</li>
+      <li>Replace <code>nn.LSTM</code> with <code>nn.GRU</code> and <code>nn.RNN</code> in the generator. Which produces the most believable dishes?</li>
+      <li>Run the memory experiment with 3 different seeds. How stable are the results for the default LSTM at 20 steps?</li>
+      <li>Initialise the ticket BiLSTM's embedding layer with GloVe vectors from Unit 3. Does it beat TF-IDF now?</li>
+    </ul>
+  </div>
+  <h3>Discussion questions</h3>
+  <details><summary>1. Why can an RNN handle any length of input with a fixed number of parameters, when an n-gram model cannot?</summary>
+    <p>The RNN reuses the same weight matrices at every step and compresses history into a fixed-size hidden state. An n-gram model stores a count for every observed combination, and the number of possible combinations grows exponentially with n.</p></details>
+  <details><summary>2. Your LSTM's training loss suddenly becomes NaN after a few hours. What is the most likely cause and fix?</summary>
+    <p>Exploding gradients (or a learning rate that is too high). Add gradient clipping (e.g. clip_grad_norm_ at 1.0), reduce the learning rate, and check for bad inputs such as empty sequences.</p></details>
+  <details><summary>3. Why did the LSTM with forget-gate bias 3 succeed at 50 steps when the default LSTM failed?</summary>
+    <p>With a large positive bias, the forget gate starts close to 1, so the cell state is carried forward almost unchanged and gradients flow back across many steps. With the default bias the gate starts around 0.5, so memory and gradients decay by roughly half at every step.</p></details>
+  <details><summary>4. The BiLSTM got 0.73 and TF-IDF got 0.80 on the tickets. Should you deploy the BiLSTM because it is "deep learning"?</summary>
+    <p>No. It is less accurate, harder to explain and more complex to run. With so little data, the baseline wins. Revisit neural models once you have far more labelled data, or start from pre-trained models.</p></details>
+  <details><summary>5. Can a bidirectional LSTM power a keyboard's next-word suggestions? Why or why not?</summary>
+    <p>No. The backward direction needs the words that come after the current position, which the user has not typed yet. Keyboards, streaming speech and text generation must use left-to-right (unidirectional) models.</p></details>
+</section>
+
+<!-- 14 -->
+<section id="takeaways">
+  <h2><span class="num">14</span>Key takeaways</h2>
+  <div class="takeaways">
+    <ul>
+      <li>RNNs read text in order and carry a hidden state, so they can in principle use the whole history, with a fixed number of parameters.</li>
+      <li>Plain RNNs forget: we measured a word 49 steps back having 10<sup>−13</sup> of the latest word's influence on learning.</li>
+      <li>LSTMs and GRUs add gates and additive memory updates; with the forget gate open, gradients survive 50+ steps.</li>
+      <li>Initialisation, gradient clipping and multiple random seeds matter as much as the architecture.</li>
+      <li>Bidirectional models see both sides of a word (great for tagging) but cannot generate or stream.</li>
+      <li>CNNs for text are fast n-gram detectors; RNNs capture longer order.</li>
+      <li>With little data, the TF-IDF baseline beat both neural models. Deep learning needs data or pre-training.</li>
+      <li>Sequential processing and the single-vector bottleneck led to attention and Transformers, but recurrence is making a comeback for long and streaming inputs.</li>
+    </ul>
+  </div>
+
+  <nav class="pager" aria-label="Unit navigation">
+    <a class="prev" href="unit3_word_embeddings.html"><small>Previous</small>← Unit 3 · Word Embeddings</a>
+    <a class="next" href="unit5_machine_translation.html"><small>Next</small>Unit 5 · Machine Translation &amp; the Paradigm Shift →</a>
+  </nav>
+</section>
+
+<footer>NLP in Practice · Industry Expert Session · Symbiosis</footer>
+</main>
+</div>
+<script src="static/js/main.js"></script>
+</body>
+</html>

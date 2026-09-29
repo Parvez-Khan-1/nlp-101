@@ -148,3 +148,5 @@ footer { margin-top: 40px; color: var(--muted); font-size: 13px; text-align: cen
 .toc .toc-agenda { display: block; font-size: 13px; color: var(--muted); text-decoration: none; margin: -8px 0 14px; }
 .toc .toc-agenda:hover { color: var(--text); }
 .pager .soon { flex: 1; text-align: right; background: var(--surface-2); border: 1px dashed var(--border); border-radius: 10px; padding: 14px 18px; color: var(--muted); }
+/* long inline code must wrap on phones */
+p code, li code, td code { overflow-wrap: anywhere; }
