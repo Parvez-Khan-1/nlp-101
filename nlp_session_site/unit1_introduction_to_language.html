@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit 1 · Introduction to Language | NLP in Practice</title>
+<meta name="description" content="Industry-focused notes on the foundations of NLP: evolution, applications, phases, and text pre-processing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="On this page">
+  <a class="home" href="index.html">← NLP in Practice</a>
+  <a class="toc-agenda" href="agenda.html">Session agenda</a>
+  <ol>
+    <li><a href="#her">Opening scene: Her</a></li>
+    <li><a href="#evolution">Evolution of language</a></li>
+    <li><a href="#what-is-nlp">What is NLP? (vs AI)</a></li>
+    <li><a href="#running-example">Running example</a></li>
+    <li><a href="#why-hard">Why language is hard</a></li>
+    <li><a href="#need">Need of NLP</a></li>
+    <li><a href="#applications">Applications (incl. healthcare)</a></li>
+    <li><a href="#phases">Phases of NLP</a></li>
+    <li><a href="#preprocessing">Pre-processing pipeline</a></li>
+    <li><a href="#normalization">Normalization</a></li>
+    <li><a href="#tokenization">Tokenization</a></li>
+    <li><a href="#stemming">Stemming &amp; lemmatization</a></li>
+    <li><a href="#pos">POS tagging</a></li>
+    <li><a href="#ner">Named entity recognition</a></li>
+    <li><a href="#regex">Regex pattern matching</a></li>
+    <li><a href="#embedding">Embedding</a></li>
+    <li><a href="#production">Pre-processing in production</a></li>
+    <li><a href="#lifecycle">NLP in the product lifecycle</a></li>
+    <li><a href="#architecture">NLP in the system architecture</a></li>
+    <li><a href="#practice">Try it yourself</a></li>
+    <li><a href="#takeaways">Key takeaways</a></li>
+  </ol>
+</nav>
+
+<main>
+<header>
+  <div class="eyebrow">Unit 1 · Industry Expert Session · Symbiosis</div>
+  <h1>Introduction to Language</h1>
+  <p class="sub">How the industry turns messy human text into something a machine can understand and act on, from the first rule-based systems to the pre-processing pipelines behind today's chatbots.</p>
+</header>
+
+<!-- 0 -->
+<section id="her">
+  <h2><span class="num">00</span>Opening scene: <em>Her</em> (2013)</h2>
+  <p>In Spike Jonze's film <em>Her</em>, Theodore (Joaquin Phoenix) installs a new operating system, and meets <strong>Samantha</strong>, an AI he simply talks to. Watch their first conversation and notice how much "language" the OS has to handle.</p>
+  <div class="video">
+    <iframe src="https://www.youtube-nocookie.com/embed/f9Hg1x-Ctlw?rel=0"
+            title="Her (2013): Theodore meets Samantha, the OS, for the first time"
+            loading="lazy" referrerpolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+  </div>
+  <p class="video-link">Video not playing? <a href="https://www.youtube.com/watch?v=f9Hg1x-Ctlw" target="_blank" rel="noopener">Watch the scene on YouTube ↗</a></p>
+
+  <h3>While you watch, spot the NLP</h3>
+  <div class="grid">
+    <div class="card" style="--col:var(--c1)"><h4>Speech → text</h4><p class="eg">Samantha hears Theodore's voice, hesitations and all. That is speech recognition.</p></div>
+    <div class="card" style="--col:var(--c3)"><h4>Understanding</h4><p class="eg">She works out what he means, not only what he literally says (NLU, semantics).</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Context &amp; memory</h4><p class="eg">She keeps track of the whole conversation, not one sentence at a time (discourse).</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>Emotion &amp; tone</h4><p class="eg">She reacts to his mood, humour and awkwardness (pragmatics, sentiment).</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Generating replies</h4><p class="eg">She answers in natural, witty language and a human voice (NLG, text-to-speech).</p></div>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>In 2013 this was science fiction. Today, LLM-based voice assistants can hold open-ended spoken conversations much like this one. Everything in this unit (tokenization, entities, context, sentiment) is a building block of that experience. <strong>Question for the class:</strong> which parts of Samantha do we already have, and which are still missing?</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="evolution">
+  <h2><span class="num">01</span>Evolution of natural language</h2>
+  <p>Humans have been speaking for tens of thousands of years, but writing is only about 5,000 years old (Sumerian cuneiform, around 3200 BCE). Language was never designed; it <em>evolved</em>, and it keeps evolving. That is exactly why it is hard for machines.</p>
+  <div class="stats">
+    <div class="stat"><b>~7,000</b><span>living languages in the world</span></div>
+    <div class="stat"><b>22</b><span>scheduled languages in India's Constitution</span></div>
+    <div class="stat"><b>121</b><span>languages with 10,000+ speakers in India (Census 2011)</span></div>
+    <div class="stat"><b>Every year</b><span>new words: "ghosting", "doomscrolling", "rizz"</span></div>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Language drift is a production problem. A sentiment model trained on 2019 reviews does not know that "this slaps" or "mid" carry sentiment. Teams monitor for <strong>data drift</strong> and retrain models regularly, because the language customers use keeps changing.</p>
+  </div>
+
+  <h3>How machines learned language</h3>
+  <p>NLP itself has gone through four eras. Each one solved a limitation of the previous one, and all four are still in use somewhere in industry today.</p>
+  <figure>
+    <img src="static/images/unit1/nlp_timeline.svg" alt="Timeline of NLP: 1954 Georgetown machine translation, 1966 ELIZA, 1990s statistical NLP, 2013 word2vec, 2014 Seq2Seq, 2017 Transformer, 2018 BERT and GPT, 2022 onwards ChatGPT and LLMs" loading="lazy">
+    <figcaption>From hand-written rules to large language models, in about 70 years.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Era</th><th>Core idea</th><th>Still used in industry for…</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Rules</strong> (1950s–80s)</td><td>Experts write if-then rules and regular expressions</td><td>Extracting PAN / Aadhaar / phone numbers, masking PII, guardrails</td></tr>
+      <tr><td><strong>Statistical</strong> (1990s–2000s)</td><td>Learn word probabilities from data (n-grams, Naive Bayes, HMMs)</td><td>Spam filters, fast baselines, keyboard suggestions on low-end devices</td></tr>
+      <tr><td><strong>Neural</strong> (2013–2017)</td><td>Words become vectors; RNNs and CNNs learn patterns</td><td>Lightweight on-device models, recommendation embeddings</td></tr>
+      <tr><td><strong>Transformers &amp; LLMs</strong> (2017–today)</td><td>Pre-train huge models on the internet, then adapt them</td><td>Chatbots, search, summarization, coding assistants, agents</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 2 -->
+<section id="what-is-nlp">
+  <h2><span class="num">02</span>What is NLP?</h2>
+  <p><strong>Natural Language Processing</strong> is the field of making computers understand, interpret and generate human language. It sits where computer science, artificial intelligence and linguistics meet.</p>
+
+  <h3>NLP vs AI: how NLP becomes part of AI</h3>
+  <p>Students often use "AI", "ML", "NLP" and "LLM" as if they meant the same thing. They do not. AI is the broad goal, ML, deep learning and generative AI are increasingly specific <em>techniques</em>, and NLP is a <em>problem area</em>: language. That is why NLP cuts across all of them.</p>
+  <figure>
+    <img src="static/images/unit1/ai_vs_nlp.svg" alt="Nested boxes: AI contains machine learning, which contains deep learning, which contains generative AI. A vertical NLP band crosses all four layers, from rules and regex in classic AI to BERT and GPT in generative AI" loading="lazy">
+    <figcaption>NLP is a slice through every layer of AI, not a layer of its own.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Term</th><th>What it means</th><th>NLP example</th></tr></thead>
+    <tbody>
+      <tr><td><strong>AI</strong></td><td>Any technique that makes machines do tasks that need human intelligence</td><td>A rule-based chatbot (ELIZA, 1966) is AI, with no learning at all</td></tr>
+      <tr><td><strong>Machine learning</strong></td><td>Systems that learn patterns from data instead of hand-written rules</td><td>A Naive Bayes spam filter learns which words signal spam</td></tr>
+      <tr><td><strong>Deep learning</strong></td><td>Machine learning with multi-layer neural networks</td><td>An LSTM that predicts the next word on your phone keyboard</td></tr>
+      <tr><td><strong>Generative AI / LLMs</strong></td><td>Very large deep learning models that generate new content</td><td>ChatGPT, Claude or Gemini answering in fluent language</td></tr>
+      <tr><td><strong>NLP</strong></td><td>The problem of working with human language, using any of the above</td><td>All four rows above are NLP systems</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>For most of AI's history, NLP was one branch alongside computer vision, speech and robotics. LLMs changed that: language became the <strong>interface to AI itself</strong>. Today you "program" an AI system by writing instructions in English (prompting), and even image and code models are driven by text. That is why NLP skills are now core AI skills.</p>
+  </div>
+
+  <h3>NLU and NLG: the two halves</h3>
+  <p>In industry, NLP work is usually split into two halves:</p>
+  <ul>
+    <li><strong>NLU (Natural Language Understanding):</strong> text → meaning. <em>What does the customer want?</em></li>
+    <li><strong>NLG (Natural Language Generation):</strong> meaning → text. <em>How do we reply?</em></li>
+  </ul>
+  <figure>
+    <img src="static/images/unit1/nlu_nlg.svg" alt="A Hinglish customer message is converted by NLU into intent track_order and order id 4521, the order system returns status and ETA, and NLG generates a reply" loading="lazy">
+    <figcaption>A support bot in one picture: understand, look up, respond.</figcaption>
+  </figure>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Notice the middle box. Businesses rarely want "text in, text out". They want <strong>structured data</strong> (an intent, an order ID, a sentiment score) that can trigger an action in a real system: refund, escalate, update CRM. Most of NLP in industry is about producing that structure reliably.</p>
+  </div>
+</section>
+
+<!-- running example -->
+<section id="running-example">
+  <h2><span class="num">03</span>From Samantha to a real product</h2>
+  <p>Samantha is the dream: one system that understands everything. Real products start with a narrow, measurable problem, and that is the one we will follow for the rest of this unit.</p>
+  <div class="callout thread">
+    <span class="label">Running example</span>
+    <p>A <strong>food-delivery app</strong> receives thousands of reviews and support tickets every hour. They are short, emotional, full of typos, emojis and Hinglish:</p>
+    <p><em>"Order #4521 late tha!! refund chahiye 😡"</em> · <em>"delivery late tha but food ekdum mast 🔥"</em> · <em>"Great, just great 🙄 cold biryani again"</em></p>
+    <p>Our job: understand what each customer means, and route it to the right team automatically. Every concept in this unit will be applied to these messages.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="why-hard">
+  <h2><span class="num">04</span>Why language is hard for machines</h2>
+  <p>Humans resolve ambiguity instantly using context and common sense. Machines have neither by default.</p>
+  <div class="grid">
+    <div class="card" style="--col:var(--c1)"><h4>Lexical ambiguity</h4><p>One word, many meanings.</p><p class="eg">"I went to the <strong>bank</strong>." Money or river?</p></div>
+    <div class="card" style="--col:var(--c3)"><h4>Syntactic ambiguity</h4><p>One sentence, many structures.</p><p class="eg">"I saw the man <strong>with the telescope</strong>." Who has it?</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Reference</h4><p>What does "it" point to?</p><p class="eg">"The phone fell on the laptop and <strong>it</strong> broke."</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>Sarcasm &amp; pragmatics</h4><p>The words say one thing, the meaning is the opposite.</p><p class="eg">"<strong>Great</strong>, my order is late again 👏"</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Code-mixing</h4><p>Two languages in one sentence, often in Roman script.</p><p class="eg">"Food <strong>ekdum mast</strong> tha but delivery <strong>bahut</strong> late"</p></div>
+    <div class="card" style="--col:var(--c2)"><h4>Noise</h4><p>Typos, slang, abbreviations, emojis.</p><p class="eg">"pls cncl my ordr asap 😤😤"</p></div>
+  </div>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha</span>
+    <p>A keyword-based sentiment filter counts "Great" as positive, so it marks <em>"Great, my order is late again 👏"</em> as a happy customer. That is how angry customers end up in the "no action needed" queue. This single example explains why the industry moved from rules → statistics → context-aware models.</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="need">
+  <h2><span class="num">05</span>Need of NLP: why businesses invest in it</h2>
+  <p>Most business information is not in neat database tables. It lives in emails, chats, call recordings, reviews, contracts and PDFs. Industry analysts commonly estimate that <strong>around 80% of enterprise data is unstructured</strong>, and most of that is text or speech.</p>
+  <div class="grid">
+    <div class="card" style="--col:var(--c3)"><h4>Scale</h4><p>No team can read 50,000 reviews a day. A model can, in minutes.</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Speed</h4><p>Urgent complaints (food safety, fraud) get flagged in seconds, not days.</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Cost</h4><p>Chatbots resolve routine queries ("where is my order?") so human agents handle the hard ones.</p></div>
+    <div class="card" style="--col:var(--c1)"><h4>Insight</h4><p>"Delivery complaints in Pune up 40% this week" is a business decision waiting to happen.</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>Compliance</h4><p>Detect and mask personal data (PII) in chats and documents before they are stored or shared.</p></div>
+    <div class="card" style="--col:var(--c2)"><h4>Inclusion</h4><p>Serve users in their own language: Hindi, Marathi, Tamil, not only English.</p></div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="applications">
+  <h2><span class="num">06</span>Applications of NLP</h2>
+  <p>The syllabus highlights three application areas: opinion mining, dialog analysis and discourse. Here is what each looks like in a real product.</p>
+
+  <h3>Opinion mining (sentiment analysis)</h3>
+  <p>Extracting opinions and emotions from text. In industry, overall sentiment is rarely enough. Teams use <strong>aspect-based sentiment</strong>: what exactly was good or bad?</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Review</th><th>Overall</th><th>Aspect-based</th></tr></thead>
+    <tbody>
+      <tr><td>"delivery late tha but food ekdum mast 🔥"</td><td>Mixed</td><td>Delivery: <span class="bad">negative</span> · Food: <span class="good">positive</span></td></tr>
+      <tr><td>"Packaging leaked, biryani was cold"</td><td>Negative</td><td>Packaging: <span class="bad">negative</span> · Temperature: <span class="bad">negative</span></td></tr>
+      <tr><td>"Rider was super polite, 10/10"</td><td>Positive</td><td>Delivery partner: <span class="good">positive</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Aspect-level results go to <em>different teams</em>: food complaints go to the restaurant, delivery complaints to logistics, packaging complaints to the vendor team. The same approach is used for product reviews on e-commerce sites, app store reviews, brand monitoring on social media and even stock-market sentiment from news.</p>
+  </div>
+
+  <h3>Dialog analysis (conversational AI)</h3>
+  <p>Understanding multi-turn conversations: what the user wants (<strong>intent</strong>) and the details they gave (<strong>slots</strong> or entities).</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>User says</th><th>Intent</th><th>Slots</th></tr></thead>
+    <tbody>
+      <tr><td>"Mera order kab aayega? #4521"</td><td><code>track_order</code></td><td>order_id = 4521</td></tr>
+      <tr><td>"Book a table for 4 at Barbeque Nation tomorrow 8 pm"</td><td><code>book_table</code></td><td>people = 4, restaurant = Barbeque Nation, date = tomorrow, time = 8 pm</td></tr>
+      <tr><td>"cancel it"</td><td><code>cancel_order</code></td><td>order = <em>from previous turn</em></td></tr>
+    </tbody>
+  </table></div>
+  <p>Beyond chatbots, <strong>call-centre analytics</strong> is a big industry use: transcribe calls, detect customer frustration, check whether the agent followed the compliance script, and summarize each call for the CRM.</p>
+
+  <h3>Discourse analysis</h3>
+  <p>Meaning that spans across sentences. Two ideas matter most in practice:</p>
+  <ul>
+    <li><strong>Coreference:</strong> <em>"I ordered paneer tikka. <u>It</u> was cold."</em> The system must know "it" = paneer tikka to log a complaint against the right dish.</li>
+    <li><strong>Discourse relations:</strong> <em>"The delivery was late <u>but</u> the food was amazing."</em> Words like <em>but</em>, <em>however</em> and <em>although</em> shift the weight. The customer is mostly happy.</li>
+  </ul>
+  <p>Discourse is what makes <strong>summarization</strong> and <strong>multi-turn chatbots</strong> work. "cancel it" in the table above only makes sense with discourse context.</p>
+
+  <h3>Healthcare: clinical NLP</h3>
+  <p>Hospitals generate enormous amounts of free text: discharge summaries, radiology and pathology reports, doctors' progress notes, prescriptions and lab comments. The most valuable clinical information is often only in this text, not in structured fields. Two of the most important industry applications:</p>
+
+  <h4>1. PHI de-identification (de-ID)</h4>
+  <p>Before clinical text can be used for research, analytics or model training, <strong>Protected Health Information (PHI)</strong> must be removed. In the US, the HIPAA "Safe Harbor" method lists 18 types of identifiers (names, dates, phone numbers, medical record numbers, addresses and more). In India, the Digital Personal Data Protection Act, 2023 governs how personal data, including health data, can be processed.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Original note (synthetic)</th><th>After de-identification</th></tr></thead>
+    <tbody>
+      <tr><td>Mr. <strong>Ramesh Patil</strong>, 67, MRN <strong>00458213</strong>, admitted to <strong>City General Hospital, Pune</strong> on <strong>14/08/2026</strong>. Contact: <strong>98220 11223</strong>. Daughter <strong>Sneha</strong> visits daily.</td>
+          <td>Mr. [NAME], 67, MRN [ID], admitted to [HOSPITAL], [CITY] on [DATE]. Contact: [PHONE]. Daughter [NAME] visits daily.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Many teams replace PHI with realistic fake values instead of tags ("surrogates"), and shift all dates by the same random offset so that time gaps between events stay correct for analysis.</p>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha</span>
+    <p>De-ID fails in both directions. <strong>Over-redaction</strong>: "Parkinson's disease" or "Down syndrome" get masked because they look like person names, destroying clinical meaning. <strong>Under-redaction</strong>: a single missed name is a privacy breach and a legal risk. That is why <strong>recall</strong> is the metric that matters most, and why production systems combine regex, NER models and human QA. Common tools include Microsoft Presidio (open source), AWS Comprehend Medical and Google Cloud Healthcare API.</p>
+  </div>
+
+  <h4>2. Extracting information from reports and notes</h4>
+  <p>Turning a doctor's note into structured data that systems can use. A synthetic example:</p>
+  <div class="ner">68 y/o male with h/o T2DM and HTN presented with chest pain. Started on Metformin 500 mg BD and Aspirin 75 mg OD. No evidence of pneumonia on chest X-ray. Denies smoking. HbA1c 8.2%.</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Type</th><th>Extracted</th><th>Status / detail</th></tr></thead>
+    <tbody>
+      <tr><td>Condition</td><td>Type 2 diabetes mellitus (T2DM)</td><td class="good">Present, history</td></tr>
+      <tr><td>Condition</td><td>Hypertension (HTN)</td><td class="good">Present, history</td></tr>
+      <tr><td>Symptom</td><td>Chest pain</td><td class="good">Present</td></tr>
+      <tr><td>Condition</td><td>Pneumonia</td><td class="bad">Negated ("no evidence of")</td></tr>
+      <tr><td>Risk factor</td><td>Smoking</td><td class="bad">Negated ("denies")</td></tr>
+      <tr><td>Medication</td><td>Metformin</td><td>500 mg, twice daily (BD)</td></tr>
+      <tr><td>Medication</td><td>Aspirin</td><td>75 mg, once daily (OD)</td></tr>
+      <tr><td>Lab</td><td>HbA1c</td><td>8.2%</td></tr>
+    </tbody>
+  </table></div>
+  <p>What makes clinical text hard:</p>
+  <ul>
+    <li><strong>Abbreviations everywhere:</strong> y/o, h/o, BD, OD, T2DM. "MS" can mean multiple sclerosis or mitral stenosis.</li>
+    <li><strong>Negation:</strong> "no evidence of pneumonia" mentions pneumonia but means the patient does <em>not</em> have it. Classic algorithms like NegEx exist just for this.</li>
+    <li><strong>Uncertainty and context:</strong> "possible pneumonia", "rule out MI", "mother had breast cancer" (family history, not the patient).</li>
+    <li><strong>Standard codes:</strong> extracted terms must map to ICD-10, SNOMED CT, RxNorm or LOINC so that other systems understand them.</li>
+  </ul>
+  <div class="grid">
+    <div class="card" style="--col:var(--c3)"><h4>Medical coding</h4><p class="eg">Suggest ICD-10 codes from discharge summaries for insurance claims.</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Clinical trial matching</h4><p class="eg">Find patients whose notes match a trial's eligibility criteria.</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>Pharmacovigilance</h4><p class="eg">Detect adverse drug reactions in notes, reports and social media.</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Report summarization</h4><p class="eg">Summarize radiology findings and flag follow-ups that were never scheduled.</p></div>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Healthcare is a <strong>high-stakes</strong> domain: a missed negation can put a wrong diagnosis in a patient's record. Clinical NLP systems are built with a human in the loop, audit trails and explainable outputs, and LLMs are usually deployed in private, compliant environments rather than sent to public APIs.</p>
+  </div>
+
+  <h3>More applications you use every day</h3>
+  <div class="grid">
+    <div class="card" style="--col:var(--c3)"><h4>Search</h4><p class="eg">Understanding "cheap veg food near me open now" in food apps and e-commerce.</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Machine translation</h4><p class="eg">Google Translate; Bhashini, India's national language translation mission.</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Smart compose &amp; autocorrect</h4><p class="eg">Gmail Smart Compose, phone keyboards predicting the next word.</p></div>
+    <div class="card" style="--col:var(--c1)"><h4>Document AI</h4><p class="eg">Reading invoices, KYC forms, insurance claims and contracts automatically.</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>Content moderation</h4><p class="eg">Flagging hate speech, spam and scams on social platforms.</p></div>
+    <div class="card" style="--col:var(--c2)"><h4>Recruitment</h4><p class="eg">Parsing resumes and matching them to job descriptions.</p></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="phases">
+  <h2><span class="num">07</span>Phases of NLP</h2>
+  <p>Classical NLP breaks understanding into five layers. Each layer needs more context than the one before it.</p>
+  <figure>
+    <img src="static/images/unit1/nlp_phases.svg" alt="Five phases of NLP: lexical and morphological, syntactic, semantic, discourse and pragmatic, each with an example and industry use" loading="lazy">
+    <figcaption>The five phases, with a real example and where each is used in industry.</figcaption>
+  </figure>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Modern LLMs do not run these phases as separate steps; they learn all of them implicitly. But the phases are still the best <strong>debugging checklist</strong>. When a chatbot fails, ask: did it misread the word (lexical), the structure (syntactic), the meaning (semantic), the earlier message (discourse) or the tone (pragmatic)?</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="preprocessing">
+  <h2><span class="num">08</span>Data pre-processing: the real pipeline</h2>
+  <p>Before any model sees text, it goes through a pipeline. Here is our support ticket travelling through a typical production system:</p>
+  <figure>
+    <img src="static/images/unit1/nlp_pipeline.svg" alt="Seven-step NLP pipeline: raw text, clean and normalize, tokenize, POS NER and parse, features, model, business action, with a support ticket example under each step" loading="lazy">
+    <figcaption>"Garbage in, garbage out." In practice, data quality work takes more time than modelling.</figcaption>
+  </figure>
+  <p>The next sections walk through each pre-processing step with real code and real outputs.</p>
+</section>
+
+<!-- 8 -->
+<section id="normalization">
+  <h2><span class="num">09</span>Normalization</h2>
+  <p>Normalization makes different ways of writing the same thing look the same: <em>"PLS"</em>, <em>"pls"</em> and <em>"please"</em> should not be three different words to a model.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Step</th><th>Before → after</th><th>Watch out</th></tr></thead>
+    <tbody>
+      <tr><td>Lowercasing</td><td>"REFUND" → "refund"</td><td>"US" (country) vs "us". Some tasks need case (NER).</td></tr>
+      <tr><td>Unicode normalization</td><td>"ｒｅｆｕｎｄ" (full-width) → "refund"</td><td>Spammers use look-alike characters to dodge filters.</td></tr>
+      <tr><td>Masking</td><td>"#4521" → [ORDER_ID], "₹450" → [MONEY]</td><td>Keep the <em>fact</em> that there is an ID; drop the useless number.</td></tr>
+      <tr><td>Emoji handling</td><td>"😡" → [ANGRY]</td><td>Deleting emojis deletes sentiment!</td></tr>
+      <tr><td>Elongation</td><td>"soooo" → "soo", "!!!!" → "!!"</td><td>Keep a trace: repetition signals emotion.</td></tr>
+      <tr><td>Slang / spelling</td><td>"pls" → "please", "cncl" → "cancel"</td><td>Build dictionaries from your own data.</td></tr>
+      <tr><td>Transliteration</td><td>"बहुत अच्छा" ↔ "bahut accha"</td><td>Indian users mix scripts freely.</td></tr>
+    </tbody>
+  </table></div>
+<pre><code>import re, unicodedata
+
+EMOJI_MAP = {"😡": " [ANGRY] ", "🙄": " [ANNOYED] ", "😍": " [LOVE] ", "🔥": " [FIRE] "}
+SLANG = {"pls": "please", "plz": "please", "thx": "thanks", "u": "you", "r": "are"}
+
+def normalize(text: str) -> str:
+    text = unicodedata.normalize("NFKC", text).lower()     # unify look-alike unicode, then lowercase
+    for emo, tag in EMOJI_MAP.items():                      # keep emotion signal, drop the glyph
+        text = text.replace(emo, tag)
+    text = re.sub(r"https?://\S+", " [URL] ", text)          # mask links
+    text = re.sub(r"#\s?(\d{4,})", r" [ORDER_ID] ", text)    # mask order ids, keep the fact one exists
+    text = re.sub(r"(?:rs\.?|₹)\s?(\d+)", r" [MONEY] ", text, flags=re.I)
+    text = re.sub(r"(.)\1{2,}", r"\1\1", text)               # "soooo" -&gt; "soo", "!!!!" -&gt; "!!"
+    tokens = [SLANG.get(t, t) for t in text.split()]
+    return " ".join(tokens)
+
+print(normalize("Order #4521 late tha!!!! pls refund ₹450 😡 soooo bad https://t.co/xyz"))</code></pre>
+<pre class="output">order [ORDER_ID] late tha!! please refund [MONEY] [ANGRY] soo bad [URL]</pre>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Normalization rules are <strong>domain-specific</strong>. A bank masks account numbers, a hospital masks patient names, a food app masks order IDs. There is no universal "clean text" function; you build it from your data.</p>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="tokenization">
+  <h2><span class="num">10</span>Tokenization</h2>
+  <p>Tokenization splits text into units (<strong>tokens</strong>) that a model processes. It sounds trivial, but the choice of token decides what the model can and cannot see.</p>
+  <figure>
+    <img src="static/images/unit1/tokenization_levels.svg" alt="The phrase unbelievably tasty biryani split at character level, word level with biryani becoming unknown, and subword level into known pieces" loading="lazy">
+    <figcaption>Three ways to cut the same sentence. Subword tokenization is the industry standard today.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Word-level:</strong> simple, but any word not seen in training becomes <code>[UNK]</code>. Dish names, brand names and Hinglish words suffer most.</li>
+    <li><strong>Character-level:</strong> never unknown, but sequences become very long and slow.</li>
+    <li><strong>Subword (BPE, WordPiece, SentencePiece):</strong> frequent words stay whole, rare words split into known pieces. Used by BERT, GPT, Claude, Gemini and Llama.</li>
+  </ul>
+  <div class="callout industry">
+    <span class="label">Industry lens: tokens are money</span>
+    <p>LLM APIs charge <strong>per token</strong>, and context windows are measured in tokens. Tokenizers trained mostly on English often split Hindi or Tamil text into many more tokens than the same sentence in English. The same conversation can therefore cost more and fit less context in an Indian language. This is one reason Indian companies build their own Indic tokenizers and models.</p>
+  </div>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha</span>
+    <p>Naive <code>text.split()</code> breaks on real data: "late!!" stays glued to its punctuation, "₹450" and "Rs. 450" become different tokens, and URLs or emails get cut into junk. Use a proper tokenizer (spaCy, NLTK, or the model's own tokenizer).</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="stemming">
+  <h2><span class="num">11</span>Stemming, lemmatization and stop words</h2>
+  <p>Both stemming and lemmatization reduce words to a base form so that "delivered", "delivering" and "delivers" count as one idea.</p>
+  <ul>
+    <li><strong>Stemming</strong> chops suffixes with rules. Fast, crude, may produce non-words.</li>
+    <li><strong>Lemmatization</strong> uses a dictionary and grammar to find the real base word. Slower, accurate.</li>
+  </ul>
+<pre><code>import spacy
+from nltk.stem import PorterStemmer
+
+stemmer = PorterStemmer()
+nlp = spacy.load("en_core_web_sm")
+
+for word in ["studies", "ran", "better", "delivered", "delivery", "university", "universal"]:
+    print(f"{word:&lt;11} stem={stemmer.stem(word):&lt;9} lemma={nlp(word)[0].lemma_}")</code></pre>
+<pre class="output">studies     stem=studi     lemma=study
+ran         stem=ran       lemma=run
+better      stem=better    lemma=well
+delivered   stem=deliv     lemma=deliver
+delivery    stem=deliveri  lemma=delivery
+university  stem=univers   lemma=university
+universal   stem=univers   lemma=universal</pre>
+  <p>Look closely at the real output:</p>
+  <ul>
+    <li><strong>"studi", "deliv"</strong>: stemming produces words that do not exist.</li>
+    <li><strong>"university" and "universal" → "univers"</strong>: stemming merges words with different meanings.</li>
+    <li><strong>"ran" → "run"</strong>: only lemmatization handles irregular forms.</li>
+    <li><strong>"better" → "well"</strong>: a lemmatizer needs context. On its own, "better" was read as an adverb. In "a better phone" it would become "good".</li>
+  </ul>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Stemming</th><th>Lemmatization</th></tr></thead>
+    <tbody>
+      <tr><td>Speed</td><td class="good">Very fast</td><td>Slower (needs POS and dictionary)</td></tr>
+      <tr><td>Output</td><td>May be a non-word</td><td class="good">Always a real word</td></tr>
+      <tr><td>Use in industry</td><td>Search indexes (e.g. Elasticsearch analyzers), large-scale keyword matching</td><td>Analytics, chatbots, anything a human reads</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Stop words: remove them carefully</h3>
+  <p>Stop words are very common words ("the", "is", "a") often removed to reduce noise. But standard stop-word lists include <strong>"not"</strong>, <strong>"no"</strong> and <strong>"but"</strong>.</p>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha</span>
+    <p>Remove stop words from <em>"The food was not good"</em> with a default list and you get <em>"food good"</em>. Your sentiment model now reads a complaint as praise. For sentiment and intent tasks, keep negations, or skip stop-word removal entirely. Transformer models do not need it at all.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="pos">
+  <h2><span class="num">12</span>Parts-of-speech (POS) tagging</h2>
+  <p>POS tagging labels each word with its grammatical role: noun, verb, adjective and so on. Here is real output from spaCy's small English model on a typical review:</p>
+<pre><code>import spacy
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("I ordered paneer tikka from Swiggy in Pune on Monday and paid Rs 450 via Paytm, but it arrived cold.")
+
+for token in doc[:6]:
+    print(f"{token.text:&lt;8} {token.pos_:&lt;6} lemma={token.lemma_}")</code></pre>
+<pre class="output">I        PRON   lemma=I
+ordered  VERB   lemma=order
+paneer   NOUN   lemma=paneer
+tikka    NOUN   lemma=tikka
+from     ADP    lemma=from
+Swiggy   PROPN  lemma=Swiggy</pre>
+  <h4>Where POS tags are used in industry</h4>
+  <ul>
+    <li><strong>Aspect extraction:</strong> nouns and noun phrases are candidate aspects ("paneer tikka", "delivery"), adjectives nearby carry the opinion ("cold").</li>
+    <li><strong>Keyword and hashtag generation:</strong> keep nouns and proper nouns, drop the rest.</li>
+    <li><strong>Better lemmatization:</strong> the lemmatizer uses the POS tag, as we saw with "better".</li>
+    <li><strong>Grammar tools:</strong> tools like Grammarly rely on syntax to flag errors.</li>
+  </ul>
+  <p>Closely related is <strong>dependency parsing</strong>, which finds <em>who did what to whom</em>. For the sentence above, spaCy links <code>arrived → cold</code> and <code>it → arrived</code>: the thing that "arrived cold" is the order. That is exactly the link an aspect-based sentiment system needs.</p>
+</section>
+
+<!-- 12 -->
+<section id="ner">
+  <h2><span class="num">13</span>Named entity recognition (NER)</h2>
+  <p>NER finds and labels real-world things in text: people, organizations, places, dates, money. This is real spaCy output for the same sentence:</p>
+  <div class="ner">
+    I ordered paneer tikka from <span class="ent org">Swiggy<small>ORG</small></span> in <span class="ent gpe">Pune<small>GPE</small></span> on <span class="ent date">Monday<small>DATE</small></span> and paid Rs <span class="ent money">450<small>CARDINAL</small></span> via <span class="ent miss">Paytm<small>MISSED</small></span>, but it arrived cold.
+  </div>
+  <p>Look at what the off-the-shelf model got wrong:</p>
+  <ul>
+    <li><strong>"Rs 450"</strong> was tagged as a plain number (CARDINAL), not MONEY. It does not know "Rs" means rupees.</li>
+    <li><strong>"Paytm"</strong> was not recognized at all.</li>
+    <li><strong>"paneer tikka"</strong> is not an entity type the model knows. For a food app it should be a DISH.</li>
+  </ul>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>This is the most common story in applied NLP: <strong>pre-trained models work well on generic data and fail on your domain</strong>. Companies fix this by labelling a few thousand examples of their own data and training a <em>custom NER</em> model (entities like DISH, RESTAURANT, ORDER_ID, PAYMENT_APP), or by prompting an LLM to extract structured fields. The fastest fix of all is often a few <strong>rules</strong>, which is the next section.</p>
+  </div>
+  <h4>Where NER is used</h4>
+  <div class="grid">
+    <div class="card" style="--col:var(--c3)"><h4>KYC &amp; banking</h4><p class="eg">Extract name, PAN, address and date of birth from uploaded documents.</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>PII masking</h4><p class="eg">Hide names and phone numbers in chat logs before analytics or LLM training.</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Resume parsing</h4><p class="eg">Pull out skills, companies, degrees and years of experience.</p></div>
+    <div class="card" style="--col:var(--c1)"><h4>Healthcare</h4><p class="eg">De-identify PHI and find drugs, dosages and symptoms in clinical notes.</p></div>
+  </div>
+</section>
+
+<!-- regex -->
+<section id="regex">
+  <h2><span class="num">14</span>Pattern matching with regular expressions</h2>
+  <p>Before any model, there were patterns. <strong>Regular expressions (regex)</strong> describe the shape of a string: "5 capital letters, 4 digits, 1 capital letter" is an Indian PAN number. For anything with a fixed format, regex is still the first tool industry reaches for: fast, explainable, and needs no training data.</p>
+<pre><code>import re
+
+text = ("Hi, I'm Rahul (rahul.k@gmail.com, +91 98765 43210). Order #4521 on 12/09/2026 "
+        "was charged ₹1,250 twice. PAN ABCPK1234F. Please refund Rs. 1250 to Paytm.")
+
+PATTERNS = {
+    "EMAIL":    r"[\w.+-]+@[\w-]+\.[\w.]+",
+    "PHONE_IN": r"(?:\+91[\s-]?)?[6-9]\d{4}\s?\d{5}",
+    "PAN":      r"\b[A-Z]{5}\d{4}[A-Z]\b",
+    "ORDER_ID": r"#\d{4,}",
+    "DATE":     r"\b\d{1,2}/\d{1,2}/\d{4}\b",
+    "MONEY":    r"(?:₹|Rs\.?|INR)\s?\d[\d,]*(?:\.\d+)?",
+}
+
+for label, pattern in PATTERNS.items():
+    for m in re.finditer(pattern, text):
+        print(f"{label:&lt;9} {m.group()}")</code></pre>
+<pre class="output">EMAIL     rahul.k@gmail.com
+PHONE_IN  +91 98765 43210
+PAN       ABCPK1234F
+ORDER_ID  #4521
+DATE      12/09/2026
+MONEY     ₹1,250
+MONEY     Rs. 1250</pre>
+
+  <h3>Regex cheat sheet</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Pattern</th><th>Meaning</th><th>Example match</th></tr></thead>
+    <tbody>
+      <tr><td><code>\d</code> · <code>\w</code> · <code>\s</code></td><td>digit · word character · whitespace</td><td><code>\d\d</code> → "42"</td></tr>
+      <tr><td><code>[A-Z]</code> · <code>[6-9]</code></td><td>any one character in the range</td><td>Indian mobiles start with 6–9</td></tr>
+      <tr><td><code>{4}</code> · <code>{4,}</code> · <code>{1,2}</code></td><td>exactly 4 · 4 or more · 1 to 2 times</td><td><code>\d{4}</code> → "2026"</td></tr>
+      <tr><td><code>?</code> · <code>+</code> · <code>*</code></td><td>optional · one or more · zero or more</td><td><code>Rs\.?</code> → "Rs" or "Rs."</td></tr>
+      <tr><td><code>\b</code></td><td>word boundary</td><td>stops "PAN" matching inside a longer code</td></tr>
+      <tr><td><code>(?:a|b)</code></td><td>group without capturing, a or b</td><td><code>(?:₹|INR)</code></td></tr>
+      <tr><td><code>^</code> · <code>$</code></td><td>start · end of the string</td><td>validate a whole form field</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Rules + models: fixing our NER failures</h3>
+  <p>Remember that spaCy missed "Paytm" and "Rs 450"? spaCy's <code>EntityRuler</code> lets us add token patterns that run <em>before</em> the statistical model:</p>
+<pre><code>import spacy
+nlp = spacy.load("en_core_web_sm")
+
+# Add hand-written patterns BEFORE the statistical NER, so rules win on these spans
+ruler = nlp.add_pipe("entity_ruler", before="ner")
+ruler.add_patterns([
+    {"label": "PAYMENT_APP", "pattern": [{"LOWER": {"IN": ["paytm", "phonepe", "gpay"]}}]},
+    {"label": "MONEY", "pattern": [{"TEXT": {"REGEX": r"^(Rs\.?|₹|INR)$"}}, {"LIKE_NUM": True}]},
+    {"label": "DISH", "pattern": [{"LOWER": "paneer"}, {"LOWER": "tikka"}]},
+])
+
+doc = nlp("I ordered paneer tikka from Swiggy in Pune on Monday and paid Rs 450 via Paytm, but it arrived cold.")
+print([(ent.text, ent.label_) for ent in doc.ents])</code></pre>
+<pre class="output">[('paneer tikka', 'DISH'), ('Swiggy', 'ORG'), ('Pune', 'GPE'), ('Monday', 'DATE'), ('Rs 450', 'MONEY'), ('Paytm', 'PAYMENT_APP')]</pre>
+  <p>Three lines of rules fixed all three failures, with no retraining.</p>
+
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha: regex is brittle</span>
+    <p>Our phone pattern, run on three more real-looking strings:</p>
+<pre class="output">"Invoice no. 7896541230 attached"  -&gt; ['7896541230']   false positive: an invoice number
+"Tracking ID 9876543210123"        -&gt; ['9876543210']   false positive: part of a longer ID
+"Call me on 98765-43210"           -&gt; []               missed: a hyphen we did not allow</pre>
+    <p>Every new format means a new rule, rules start to conflict, and nobody remembers why rule #147 exists. Regex does not understand context: it cannot tell a phone number from an invoice number that looks the same.</p>
+  </div>
+
+  <h3>When to use rules, ML or an LLM</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Regex / rules</th><th>Trained ML model</th><th>LLM (prompted)</th></tr></thead>
+    <tbody>
+      <tr><td>Best for</td><td>Fixed formats: IDs, phones, emails, PAN, dates</td><td>Fuzzy language: intents, sentiment, entities in context</td><td>Long tail, new tasks, little labelled data</td></tr>
+      <tr><td>Training data</td><td class="good">None</td><td>Thousands of labelled examples</td><td class="good">A few examples in the prompt</td></tr>
+      <tr><td>Speed &amp; cost</td><td class="good">Microseconds, free</td><td>Milliseconds, cheap</td><td class="bad">Seconds, paid per token</td></tr>
+      <tr><td>Explainable</td><td class="good">Fully</td><td>Partly</td><td class="bad">Hard</td></tr>
+      <tr><td>Handles new wording</td><td class="bad">No</td><td>Somewhat</td><td class="good">Well</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Almost every production NLP system is <strong>hybrid</strong>: regex for high-precision structured fields, a trained model for everyday language, and an LLM for the hard long tail. Regex is also everywhere around LLMs: PII filters, input validation and output guardrails are very often plain regular expressions.</p>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="embedding">
+  <h2><span class="num">15</span>Embedding: turning text into numbers</h2>
+  <p>Models only understand numbers. The final pre-processing step is to convert tokens into vectors. The simplest way is <strong>one-hot encoding</strong>; the modern way is a <strong>dense embedding</strong>, where words with similar meanings get similar vectors.</p>
+  <figure>
+    <img src="static/images/unit1/onehot_vs_dense.svg" alt="One-hot vectors where good, great and bad are all equally unrelated, compared with dense embeddings where good and great have similar values" loading="lazy">
+    <figcaption>One-hot vectors know nothing about meaning. Embeddings place similar words close together.</figcaption>
+  </figure>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Embeddings power semantic search ("cheap food" also finds "budget meals"), recommendations ("people who liked this dish also liked…") and every RAG chatbot. We go deep on word2vec, GloVe and how embeddings are trained in <strong>Unit 3</strong>.</p>
+  </div>
+</section>
+
+<!-- 14 -->
+<section id="production">
+  <h2><span class="num">16</span>Pre-processing in production: it depends on the model</h2>
+  <p>This is the part most textbooks skip. How much pre-processing you do depends heavily on which kind of model sits at the end of the pipeline.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Step</th><th>Classic ML<br>(TF-IDF + logistic regression)</th><th>Transformer<br>(BERT-style)</th><th>LLM<br>(GPT, Claude, Gemini)</th></tr></thead>
+    <tbody>
+      <tr><td>Lowercasing</td><td class="good">Yes</td><td>Depends on the model (cased vs uncased)</td><td class="bad">No</td></tr>
+      <tr><td>Stop-word removal</td><td>Often (keep negations!)</td><td class="bad">No</td><td class="bad">No</td></tr>
+      <tr><td>Stemming / lemmatization</td><td class="good">Yes</td><td class="bad">No</td><td class="bad">No</td></tr>
+      <tr><td>Tokenization</td><td>Word-level</td><td>Model's own subword tokenizer</td><td>Model's own subword tokenizer</td></tr>
+      <tr><td>PII masking, dedup, spam removal</td><td class="good">Yes</td><td class="good">Yes</td><td class="good">Yes, always</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Modern models learn from raw text, so "linguistic" cleaning (stemming, stop words) matters less. But <strong>data hygiene</strong> matters more than ever: removing duplicates, spam and personal data, fixing labels, and balancing classes. Teams that win in NLP usually have the cleanest data, not the fanciest model.</p>
+  </div>
+</section>
+
+<!-- lifecycle -->
+<section id="lifecycle">
+  <h2><span class="num">17</span>Where NLP fits in building a real product</h2>
+  <p>In a classroom, NLP ends when the model reaches good accuracy. In industry, that is roughly the middle. An NLP feature goes through the same engineering cycle as any other software, with a few extra steps for data and models.</p>
+  <figure>
+    <img src="static/images/unit1/nlp_product_lifecycle.svg" alt="Eight-stage NLP product lifecycle: define the problem, collect and label data, pre-process and explore, baseline, model, evaluate, deploy, monitor and improve, with a feedback loop from monitoring back to data" loading="lazy">
+    <figcaption>The NLP product lifecycle, mapped to familiar software engineering phases. This unit covers step 3.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Software engineering phase</th><th>What changes when the feature is NLP</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Requirements</strong></td><td>Define success as a metric ("90% of tickets routed correctly") and a latency and cost budget, not just a feature list.</td></tr>
+      <tr><td><strong>Design</strong></td><td>Choose rules vs ML vs LLM; plan for privacy (PII/PHI) and a human fallback.</td></tr>
+      <tr><td><strong>Build</strong></td><td>Data collection and labelling are real engineering work. Always build a simple baseline before a complex model.</td></tr>
+      <tr><td><strong>Test</strong></td><td>Unit tests are not enough: you need a held-out evaluation set, per-class metrics, error analysis and bias checks.</td></tr>
+      <tr><td><strong>Release</strong></td><td>Roll out behind a feature flag or A/B test; keep the old system as a fallback.</td></tr>
+      <tr><td><strong>Maintain</strong></td><td>Models decay as language drifts. Monitor, collect feedback, and retrain. It never "ships and stays done".</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Most failed NLP projects fail at step 1 (no clear metric) or step 8 (no monitoring), not at the model. If you remember one thing: <strong>define how you will measure success before you write any code</strong>, and start with the simplest baseline that could work.</p>
+  </div>
+</section>
+
+<!-- architecture -->
+<section id="architecture">
+  <h2><span class="num">18</span>Where the NLP engine sits in the system architecture</h2>
+  <p>The lifecycle shows <em>when</em> NLP work happens. This diagram shows <em>where</em> it lives in a running product. Follow our support ticket from the customer's phone to the agent's screen:</p>
+  <figure>
+    <img src="static/images/unit1/nlp_system_architecture.svg" alt="Layered architecture: frontend apps, API gateway, backend services, the NLP engine as its own microservice with pre-processing, models, LLM gateway and guardrails, a data layer, and an offline ML platform that retrains and deploys models back to the NLP engine. Numbered steps trace one ticket through the system" loading="lazy">
+    <figcaption>A typical production architecture. The NLP engine (yellow) is one service among many.</figcaption>
+  </figure>
+  <h3>Design decisions engineers actually make</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Decision</th><th>Typical choice</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Separate NLP service or inside the backend?</td><td>Separate microservice with a REST or gRPC API</td><td>Models need different hardware (GPUs), release cycles and scaling from the rest of the app.</td></tr>
+      <tr><td>Synchronous or asynchronous?</td><td>Sync for chat (the user is waiting); async via the event stream for analytics and reports</td><td>A chatbot needs an answer in milliseconds; sentiment dashboards can wait minutes.</td></tr>
+      <tr><td>What if the model is slow, down or unsure?</td><td>Timeout + fallback: default queue, rules, or a human agent</td><td>The product must keep working even when the model does not.</td></tr>
+      <tr><td>What does the NLP engine return?</td><td>Structured JSON with a confidence score and model version</td><td>Backends act on fields, not free text; the version makes every decision traceable.</td></tr>
+      <tr><td>How do new models go live?</td><td>From the model registry, behind a feature flag or A/B test</td><td>Roll back instantly if the new model performs worse.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Notice how small the yellow box is. Frontend, gateway, backend services, databases and pipelines are standard software engineering, and they are most of the system. Strong NLP engineers understand the whole picture: APIs, latency budgets, logging, privacy and deployment, not only models. In interviews, being able to draw this diagram for a product you use every day is a real differentiator.</p>
+  </div>
+</section>
+
+<!-- 15 -->
+<section id="practice">
+  <h2><span class="num">19</span>Try it yourself</h2>
+  <div class="callout demo">
+    <span class="label">Hands-on</span>
+    <p>Open a Google Colab notebook and run:</p>
+<pre><code>!pip install spacy nltk
+!python -m spacy download en_core_web_sm</code></pre>
+    <p>Then run the code blocks on this page on <strong>your own examples</strong>: a review you wrote, a WhatsApp-style Hinglish message, or a tweet. Note where the tools fail.</p>
+  </div>
+  <h3>Discussion questions</h3>
+  <details><summary>1. Why might a sentiment model trained on movie reviews perform poorly on food-delivery reviews?</summary>
+    <p>Domain shift. Words carry different sentiment in different domains ("unpredictable" is good for a movie plot, bad for delivery times). Vocabulary differs too (dish names, "rider", "cold", Hinglish). The model needs fine-tuning on in-domain data.</p></details>
+  <details><summary>2. You remove stop words and your complaint-detection accuracy drops. What happened?</summary>
+    <p>The stop-word list probably removed negations like "not", "no" and "never", flipping the meaning of complaints. Keep negations, or skip stop-word removal for sentiment tasks.</p></details>
+  <details><summary>3. Should an e-commerce search engine use stemming or lemmatization?</summary>
+    <p>Often stemming: it is fast, runs over millions of products, and small errors are acceptable because search ranks many results. Lemmatization is preferred when precision matters or a human reads the output.</p></details>
+  <details><summary>4. The spaCy model missed "Paytm" and called "Rs 450" a plain number. How would you fix this for a fintech company?</summary>
+    <p>Options: (a) add rule-based patterns for currency formats ("Rs", "₹", "INR"); (b) label a few thousand in-domain sentences and train a custom NER model; (c) use an LLM with a prompt that returns structured JSON. In practice teams often combine rules for high-precision fields with a trained model for the rest.</p></details>
+  <details><summary>5. Which phase of NLP is failing when a chatbot answers "cancel it" by asking "cancel what?"</summary>
+    <p>Discourse: the bot is not tracking the earlier turns of the conversation, so it cannot resolve what "it" refers to.</p></details>
+  <details><summary>6. A clinical NLP system flags every patient whose note mentions "pneumonia". What goes wrong?</summary>
+    <p>It ignores negation and context. "No evidence of pneumonia", "rule out pneumonia" and "mother had pneumonia" would all be flagged. The system needs negation, uncertainty and experiencer (patient vs family) detection.</p></details>
+  <details><summary>7. Is ChatGPT "AI", "NLP", "deep learning" or "generative AI"?</summary>
+    <p>All four. It is a generative AI model (an LLM), built with deep learning, which is a kind of machine learning, which is a kind of AI, and its task is language, so it is an NLP system.</p></details>
+  <details><summary>8. Write a regex for a 6-digit Indian PIN code. What could it wrongly match?</summary>
+    <p><code>\b[1-9]\d{5}\b</code> (PIN codes do not start with 0). It will also match any other 6-digit number: OTPs, amounts, parts of order IDs. Context (the word "PIN", or its position in an address) is needed to be sure.</p></details>
+</section>
+
+<!-- 16 -->
+<section id="takeaways">
+  <h2><span class="num">20</span>Key takeaways</h2>
+  <div class="takeaways">
+    <ul>
+      <li>Language is ambiguous, noisy and constantly changing. That is the whole reason NLP is hard, and why models need regular retraining.</li>
+      <li>Industry NLP is mostly about turning text into <strong>structured data that triggers an action</strong>.</li>
+      <li>The five phases (lexical → pragmatic) are a great debugging checklist, even for LLMs.</li>
+      <li>Pre-processing is domain-specific. Mask what is noise, keep what carries signal (emojis, negations).</li>
+      <li>Subword tokenization is the modern standard, and tokens directly affect cost and context length.</li>
+      <li>Off-the-shelf models fail on your domain. Plan for custom data and evaluation from day one.</li>
+      <li>NLP is a problem area that cuts across all of AI, from regex rules to LLMs. Production systems are usually a hybrid of all three.</li>
+      <li>High-stakes domains like healthcare add privacy (PHI de-ID), negation and human review to every pipeline.</li>
+      <li>An NLP model is one step of a product lifecycle and one service in a larger architecture. Define the success metric first, design for fallbacks, and plan for monitoring and retraining.</li>
+    </ul>
+  </div>
+
+  <nav class="pager" aria-label="Unit navigation">
+    <span class="disabled"></span>
+    <a class="next" href="unit2_feature_extraction.html"><small>Next</small>Unit 2 · Feature Extraction →</a>
+  </nav>
+</section>
+
+<footer>NLP in Practice · Industry Expert Session · Symbiosis</footer>
+</main>
+</div>
+<script src="static/js/main.js"></script>
+</body>
+</html>

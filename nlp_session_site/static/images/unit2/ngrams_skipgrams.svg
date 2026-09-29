@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 380" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" xml:space="preserve" role="img" aria-label="Unigrams, bigrams, trigrams and skip-grams for one sentence">
+<title>Unigrams, bigrams, trigrams and skip-grams for one sentence</title>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a8983"/></marker><marker id="ahu" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2a78d6"/></marker><marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b9b7b0"/></marker></defs>
+<rect width="1000" height="380" fill="#fcfcfb"/>
+<rect x="200" y="24" width="120" height="42" rx="10" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="260.0" y="50.25" font-size="15" text-anchor="middle" fill="#1d1d1f" font-weight="700">food</text>
+<rect x="340" y="24" width="120" height="42" rx="10" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="400.0" y="50.25" font-size="15" text-anchor="middle" fill="#1d1d1f" font-weight="700">was</text>
+<rect x="480" y="24" width="120" height="42" rx="10" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="540.0" y="50.25" font-size="15" text-anchor="middle" fill="#1d1d1f" font-weight="700">not</text>
+<rect x="620" y="24" width="120" height="42" rx="10" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="680.0" y="50.25" font-size="15" text-anchor="middle" fill="#1d1d1f" font-weight="700">very</text>
+<rect x="760" y="24" width="120" height="42" rx="10" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="820.0" y="50.25" font-size="15" text-anchor="middle" fill="#1d1d1f" font-weight="700">good</text>
+<text x="20" y="104" font-size="13" text-anchor="start" fill="#8a8983" font-weight="700">Unigrams (n=1)</text>
+<line x1="212" y1="112" x2="308" y2="112" stroke="#8a8983" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="352" y1="121" x2="448" y2="121" stroke="#8a8983" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="492" y1="112" x2="588" y2="112" stroke="#8a8983" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="632" y1="121" x2="728" y2="121" stroke="#8a8983" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="772" y1="112" x2="868" y2="112" stroke="#8a8983" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<text x="20" y="166" font-size="13" text-anchor="start" fill="#2a78d6" font-weight="700">Bigrams (n=2)</text>
+<line x1="212" y1="174" x2="448" y2="174" stroke="#2a78d6" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="352" y1="183" x2="588" y2="183" stroke="#2a78d6" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="492" y1="174" x2="728" y2="174" stroke="#2a78d6" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="632" y1="183" x2="868" y2="183" stroke="#2a78d6" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<text x="20" y="228" font-size="13" text-anchor="start" fill="#1baf7a" font-weight="700">Trigrams (n=3)</text>
+<line x1="212" y1="236" x2="588" y2="236" stroke="#1baf7a" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="352" y1="245" x2="728" y2="245" stroke="#1baf7a" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<line x1="492" y1="254" x2="868" y2="254" stroke="#1baf7a" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+<text x="20" y="290" font-size="13" text-anchor="start" fill="#eb6834" font-weight="700">Skip-bigram</text>
+<text x="20" y="308" font-size="12" text-anchor="start" fill="#52514e">(skip up to 2)</text>
+<path d="M 540 280 C 540 320, 820 320, 820 280" fill="none" stroke="#eb6834" stroke-width="3"/>
+<text x="680.0" y="328" font-size="13" text-anchor="middle" fill="#eb6834" font-family="Consolas, Menlo, monospace" font-weight="700">(not, good)  also (food, not), (was, good) …</text>
+<text x="500" y="366" font-size="13" text-anchor="middle" fill="#52514e">Plain bigrams never see "not good" here, because "very" sits in between. A skip-bigram connects them.</text>
+</svg>

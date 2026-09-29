@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session Agenda | NLP in Practice</title>
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --text: #1d1d1f; --muted: #5f6368;
+    --border: #e3e1da; --accent: #3b5bdb; --accent-soft: #edf1ff;
+    --c1: #868e96; --c2: #f08c00; --c3: #3b5bdb; --c4: #0ca678; --c5: #ae3ec9; --c6: #e8590c; --c7: #1971c2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141517; --surface: #1d1f22; --text: #e9ecef; --muted: #a0a6ad;
+      --border: #2e3136; --accent: #7b93ff; --accent-soft: #232a45;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 16px 64px; }
+  header .eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 8px 0 12px; }
+  .sub { color: var(--muted); font-size: 17px; margin: 0 0 20px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  .chip { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 14px; }
+
+  .thread {
+    background: var(--accent-soft); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: 32px;
+  }
+  .thread strong { color: var(--accent); }
+
+  h2 { font-size: 20px; margin: 36px 0 12px; }
+  .bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .bar div { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--dot); vertical-align: middle; }
+
+  .timeline { position: relative; margin-top: 8px; }
+  .block {
+    display: grid; grid-template-columns: 120px 1fr; gap: 20px;
+    background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--col);
+    border-radius: 10px; padding: 18px 20px; margin-bottom: 14px;
+  }
+  .time { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .dur { display: inline-block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+  .block h3 { margin: 0 0 8px; font-size: 18px; }
+  .block ul { margin: 0; padding-left: 18px; }
+  .block li { margin: 4px 0; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+         padding: 2px 8px; border-radius: 4px; margin-right: 6px; vertical-align: 1px; }
+  .demo { background: #d3f9d8; color: #1b5e20; }
+  .ind  { background: #fff3bf; color: #7a5200; }
+  @media (prefers-color-scheme: dark) {
+    .demo { background: #1f3a26; color: #8ce99a; }
+    .ind  { background: #3d3212; color: #ffd43b; }
+  }
+  .brk { background: transparent; border-style: dashed; }
+
+  .notes { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; }
+  .notes ul { margin: 0; padding-left: 18px; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; text-align: center; }
+
+  @media (max-width: 600px) {
+    .block { grid-template-columns: 1fr; gap: 6px; }
+    .bar div { font-size: 0; }
+  }
+  @media print {
+    body { background: #fff; }
+    .block { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p style="margin:0 0 20px"><a href="index.html" style="color:var(--accent);text-decoration:none;font-weight:600">← NLP in Practice</a></p>
+  <header>
+    <div class="eyebrow">Industry Expert Session · Symbiosis</div>
+    <h1>NLP in Practice: From Bag-of-Words to LLMs</h1>
+    <p class="sub">An industry perspective on how language models evolved, and how each idea is used in real products today.</p>
+    <div class="meta">
+      <span class="chip">⏱ 120 minutes</span>
+      <span class="chip">🧪 Live Colab demos</span>
+      <span class="chip">🏭 Real-world case studies</span>
+    </div>
+  </header>
+
+  <div class="thread">
+    <strong>Running thread:</strong> customer reviews and support tickets from an Indian e-commerce or food-delivery app.
+    Every section solves the <em>same</em> problem with a newer technique, so the class sees why each idea was invented, not just what it is.
+  </div>
+
+  <h2>Time allocation</h2>
+  <div class="bar" role="img" aria-label="Time split across sections">
+    <div style="flex:10;background:var(--c1)">Hook</div>
+    <div style="flex:15;background:var(--c2)">Basics</div>
+    <div style="flex:25;background:var(--c3)">Embeddings</div>
+    <div style="flex:5;background:#adb5bd">☕</div>
+    <div style="flex:12;background:var(--c4)">CNN</div>
+    <div style="flex:20;background:var(--c5)">RNN / LSTM</div>
+    <div style="flex:15;background:var(--c6)">Seq2Seq → GPT</div>
+    <div style="flex:10;background:var(--c7)">Today</div>
+    <div style="flex:8;background:var(--c1)">Q&amp;A</div>
+  </div>
+  <div class="legend">
+    <span style="--dot:var(--c2)">Fast-forward basics · 15m</span>
+    <span style="--dot:var(--c3)">Word embeddings · 25m</span>
+    <span style="--dot:var(--c4)">CNNs · 12m</span>
+    <span style="--dot:var(--c5)">RNN/LSTM/GRU · 20m</span>
+    <span style="--dot:var(--c6)">Seq2Seq &amp; Transformers · 15m</span>
+    <span style="--dot:var(--c7)">NLP today · 10m</span>
+  </div>
+
+  <h2>Agenda</h2>
+  <div class="timeline">
+
+    <div class="block" style="--col:var(--c1)">
+      <div><div class="time">0:00 – 0:10</div><span class="dur">10 min</span></div>
+      <div>
+        <h3>Opening hook</h3>
+        <ul>
+          <li><span class="tag demo">Demo</span>Run one messy Hinglish review (<em>"delivery late tha but food ekdum mast 🔥"</em>) through a 2005-style keyword filter and then a modern LLM. The gap between them is what the session explains.</li>
+          <li><span class="tag ind">Industry</span>NLP in their day: Gmail Smart Compose, Swiggy/Zomato review tagging, UPI and bank chatbots, Bhashini translation.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block" style="--col:var(--c2)">
+      <div><div class="time">0:10 – 0:25</div><span class="dur">15 min</span></div>
+      <div>
+        <h3>Fast-forward foundations</h3>
+        <ul>
+          <li>The NLP pipeline in a real system: tokenization, normalization, stemming vs lemmatization, POS tagging, NER.</li>
+          <li>Why production text is hard: typos, code-mixing, emojis, domain jargon.</li>
+          <li>Feature extraction in 5 minutes: BoW, n-grams, TF-IDF, Naive Bayes.</li>
+          <li><span class="tag ind">Industry</span>TF-IDF + logistic regression is still the baseline every team must beat.</li>
+          <li><span class="tag demo">Demo</span>Support-ticket classifier in ~10 lines.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block" style="--col:var(--c3)">
+      <div><div class="time">0:25 – 0:50</div><span class="dur">25 min</span></div>
+      <div>
+        <h3>Word embeddings: the big leap</h3>
+        <ul>
+          <li>Why one-hot fails → "you know a word by the company it keeps."</li>
+          <li>word2vec (CBOW, skip-gram, negative sampling), GloVe, fastText subwords for typos and Hinglish.</li>
+          <li><span class="tag demo">Demo</span>Gensim: king − man + woman, nearest neighbours, bias in embeddings.</li>
+          <li><span class="tag ind">Industry</span>Search query expansion; product/listing embeddings for recommendations (item2vec).</li>
+          <li>Limitation: one vector per word ("bank") → sets up context-aware models.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block brk" style="--col:#adb5bd">
+      <div><div class="time">0:50 – 0:55</div><span class="dur">5 min</span></div>
+      <div><h3>☕ Break &amp; quick questions</h3></div>
+    </div>
+
+    <div class="block" style="--col:var(--c4)">
+      <div><div class="time">0:55 – 1:07</div><span class="dur">12 min</span></div>
+      <div>
+        <h3>Neural networks &amp; CNNs for text</h3>
+        <ul>
+          <li>Backprop intuition, with no matrix calculus on slides.</li>
+          <li>1D convolutions as learned n-gram detectors (Kim, 2014).</li>
+          <li><span class="tag ind">Industry</span>Fast intent classification, toxicity and spam filters where latency matters.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block" style="--col:var(--c5)">
+      <div><div class="time">1:07 – 1:27</div><span class="dur">20 min</span></div>
+      <div>
+        <h3>RNNs, LSTMs &amp; GRUs</h3>
+        <ul>
+          <li>RNNs as language models, and how they relate to n-grams.</li>
+          <li>Vanishing gradients, shown visually.</li>
+          <li>LSTM and GRU gates as "memory with a forget button."</li>
+          <li><span class="tag demo">Demo</span>LSTM sentiment model or character-level text generation.</li>
+          <li><span class="tag ind">Industry</span>Keyboard next-word prediction, speech, time series.</li>
+          <li>Why they were replaced: sequential processing and weak long-range memory.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block" style="--col:var(--c6)">
+      <div><div class="time">1:27 – 1:42</div><span class="dur">15 min</span></div>
+      <div>
+        <h3>Seq2Seq, attention &amp; the paradigm shift</h3>
+        <ul>
+          <li>Encoder–decoder translation → the bottleneck problem → attention.</li>
+          <li>Transformers → BERT (encoder, understanding) vs GPT (decoder, generation); LaMDA.</li>
+          <li><span class="tag ind">Industry</span>Google Translate's 2016 switch to neural MT; IndicTrans2 / Bhashini for Indian languages.</li>
+          <li><span class="tag demo">Demo</span>Hugging Face translation or sentiment pipeline.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block" style="--col:var(--c7)">
+      <div><div class="time">1:42 – 1:52</div><span class="dur">10 min</span></div>
+      <div>
+        <h3>NLP in industry today</h3>
+        <ul>
+          <li>Anatomy of a production conversational AI: LLM + RAG + guardrails + evaluation.</li>
+          <li>Prompting vs fine-tuning vs a small classic model: cost and latency trade-offs.</li>
+          <li>Papers worth reading: <em>Attention Is All You Need</em>, BERT, and one recent LLM/RAG paper.</li>
+          <li>Skills and portfolio projects recruiters look for.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block" style="--col:var(--c1)">
+      <div><div class="time">1:52 – 2:00</div><span class="dur">8 min</span></div>
+      <div><h3>Open Q&amp;A and resources</h3></div>
+    </div>
+  </div>
+
+  <h2>Syllabus coverage notes</h2>
+  <div class="notes">
+    <ul>
+      <li>Probabilistic topics from Unit 2 (Markov models, smoothing) are covered in one slide within the n-gram → RNN discussion.</li>
+      <li>Dependency parsing appears as one real-world example in the foundations section.</li>
+      <li>All demos run in a shared Colab notebook so students can follow along.</li>
+    </ul>
+  </div>
+
+  <footer>NLP Expert Session · Symbiosis</footer>
+</div>
+</body>
+</html>

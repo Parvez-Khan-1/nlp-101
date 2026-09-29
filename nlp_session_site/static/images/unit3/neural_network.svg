@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 340" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" xml:space="preserve" role="img" aria-label="A small feed-forward neural network">
+<title>A small feed-forward neural network</title>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a8983"/></marker><marker id="ahu" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2a78d6"/></marker><marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b9b7b0"/></marker></defs>
+<rect width="1000" height="340" fill="#fcfcfb"/>
+<text x="120" y="30" font-size="15" text-anchor="middle" fill="#2a78d6" font-weight="700">Input x</text>
+<text x="120" y="50" font-size="12.5" text-anchor="middle" fill="#52514e" font-family="Consolas, Menlo, monospace">word vectors</text>
+<text x="400" y="30" font-size="15" text-anchor="middle" fill="#4a3aa7" font-weight="700">Hidden h</text>
+<text x="400" y="50" font-size="12.5" text-anchor="middle" fill="#52514e" font-family="Consolas, Menlo, monospace">h = ReLU(W₁x + b₁)</text>
+<text x="680" y="30" font-size="15" text-anchor="middle" fill="#008300" font-weight="700">Output ŷ</text>
+<text x="680" y="50" font-size="12.5" text-anchor="middle" fill="#52514e" font-family="Consolas, Menlo, monospace">ŷ = softmax(W₂h + b₂)</text>
+<line x1="134" y1="86.0" x2="386" y2="65.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="86.0" x2="386" y2="107.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="86.0" x2="386" y2="149.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="86.0" x2="386" y2="191.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="86.0" x2="386" y2="233.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="86.0" x2="386" y2="275.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="128.0" x2="386" y2="65.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="128.0" x2="386" y2="107.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="128.0" x2="386" y2="149.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="128.0" x2="386" y2="191.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="128.0" x2="386" y2="233.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="128.0" x2="386" y2="275.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="170.0" x2="386" y2="65.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="170.0" x2="386" y2="107.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="170.0" x2="386" y2="149.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="170.0" x2="386" y2="191.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="170.0" x2="386" y2="233.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="170.0" x2="386" y2="275.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="212.0" x2="386" y2="65.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="212.0" x2="386" y2="107.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="212.0" x2="386" y2="149.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="212.0" x2="386" y2="191.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="212.0" x2="386" y2="233.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="212.0" x2="386" y2="275.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="254.0" x2="386" y2="65.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="254.0" x2="386" y2="107.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="254.0" x2="386" y2="149.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="254.0" x2="386" y2="191.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="254.0" x2="386" y2="233.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="134" y1="254.0" x2="386" y2="275.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="65.0" x2="666" y2="128.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="65.0" x2="666" y2="170.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="65.0" x2="666" y2="212.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="107.0" x2="666" y2="128.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="107.0" x2="666" y2="170.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="107.0" x2="666" y2="212.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="149.0" x2="666" y2="128.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="149.0" x2="666" y2="170.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="149.0" x2="666" y2="212.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="191.0" x2="666" y2="128.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="191.0" x2="666" y2="170.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="191.0" x2="666" y2="212.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="233.0" x2="666" y2="128.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="233.0" x2="666" y2="170.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="233.0" x2="666" y2="212.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="275.0" x2="666" y2="128.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="275.0" x2="666" y2="170.0" stroke="#c9c7c0" stroke-width="1"/>
+<line x1="414" y1="275.0" x2="666" y2="212.0" stroke="#c9c7c0" stroke-width="1"/>
+<circle cx="120" cy="86.0" r="14" fill="#c9ddf4" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="120" cy="128.0" r="14" fill="#c9ddf4" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="120" cy="170.0" r="14" fill="#c9ddf4" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="120" cy="212.0" r="14" fill="#c9ddf4" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="120" cy="254.0" r="14" fill="#c9ddf4" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="400" cy="65.0" r="14" fill="#d1cde9" stroke="#4a3aa7" stroke-width="2"/>
+<circle cx="400" cy="107.0" r="14" fill="#d1cde9" stroke="#4a3aa7" stroke-width="2"/>
+<circle cx="400" cy="149.0" r="14" fill="#d1cde9" stroke="#4a3aa7" stroke-width="2"/>
+<circle cx="400" cy="191.0" r="14" fill="#d1cde9" stroke="#4a3aa7" stroke-width="2"/>
+<circle cx="400" cy="233.0" r="14" fill="#d1cde9" stroke="#4a3aa7" stroke-width="2"/>
+<circle cx="400" cy="275.0" r="14" fill="#d1cde9" stroke="#4a3aa7" stroke-width="2"/>
+<circle cx="680" cy="128.0" r="14" fill="#bfe0bf" stroke="#008300" stroke-width="2"/>
+<circle cx="680" cy="170.0" r="14" fill="#bfe0bf" stroke="#008300" stroke-width="2"/>
+<circle cx="680" cy="212.0" r="14" fill="#bfe0bf" stroke="#008300" stroke-width="2"/>
+<text x="706" y="133.0" font-size="13" text-anchor="start" fill="#1d1d1f" font-weight="700">CITY</text>
+<text x="706" y="175.0" font-size="13" text-anchor="start" fill="#1d1d1f" font-weight="700">DISH</text>
+<text x="706" y="217.0" font-size="13" text-anchor="start" fill="#1d1d1f" font-weight="700">O</text>
+<text x="260" y="312" font-size="13" text-anchor="middle" fill="#52514e" font-family="Consolas, Menlo, monospace">W₁, b₁</text>
+<text x="540" y="312" font-size="13" text-anchor="middle" fill="#52514e" font-family="Consolas, Menlo, monospace">W₂, b₂</text>
+<rect x="790" y="90" width="195" height="160" rx="10" fill="#ffffff" stroke="#8a8983" stroke-width="2"/>
+<text x="888" y="114" font-size="12.5" text-anchor="middle" fill="#52514e">Weights W, b are just</text>
+<text x="888" y="134" font-size="12.5" text-anchor="middle" fill="#52514e">matrices of numbers.</text>
+<text x="888" y="154" font-size="12.5" text-anchor="middle" fill="#52514e">Training = finding</text>
+<text x="888" y="174" font-size="12.5" text-anchor="middle" fill="#52514e">values that make the</text>
+<text x="888" y="194" font-size="12.5" text-anchor="middle" fill="#52514e">right answer likely.</text>
+<text x="888" y="214" font-size="12.5" text-anchor="middle" fill="#52514e">This is where the</text>
+<text x="888" y="234" font-size="12.5" text-anchor="middle" fill="#52514e">calculus comes in →</text>
+</svg>

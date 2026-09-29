@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" xml:space="preserve" role="img" aria-label="Generative versus discriminative models">
+<title>Generative versus discriminative models</title>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a8983"/></marker><marker id="ahu" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2a78d6"/></marker><marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b9b7b0"/></marker></defs>
+<rect width="1000" height="300" fill="#fcfcfb"/>
+<text x="250" y="32" font-size="16" text-anchor="middle" fill="#eb6834" font-weight="700">Generative model</text>
+<text x="750" y="32" font-size="16" text-anchor="middle" fill="#2a78d6" font-weight="700">Discriminative model</text>
+<rect x="40" y="56" width="420" height="70" rx="10" fill="#fcece6" stroke="#eb6834" stroke-width="2"/>
+<text x="250.0" y="87.15" font-size="14" text-anchor="middle" fill="#1d1d1f" font-weight="700">learns how each class GENERATES text</text>
+<text x="250.0" y="104.65" font-size="11" text-anchor="middle" fill="#52514e">P(words | class) and P(class)</text>
+<rect x="540" y="56" width="420" height="70" rx="10" fill="#e5eefa" stroke="#2a78d6" stroke-width="2"/>
+<text x="750.0" y="87.15" font-size="14" text-anchor="middle" fill="#1d1d1f" font-weight="700">learns the BOUNDARY between classes</text>
+<text x="750.0" y="104.65" font-size="11" text-anchor="middle" fill="#52514e">P(class | words) directly</text>
+<text x="250" y="160" font-size="13" text-anchor="middle" fill="#1d1d1f">Examples: Naive Bayes, n-gram LMs, HMMs, GPT</text>
+<text x="250" y="186" font-size="13" text-anchor="middle" fill="#52514e">Can generate new text (sample from it)</text>
+<text x="250" y="212" font-size="13" text-anchor="middle" fill="#52514e">Works with little data; strong assumptions</text>
+<text x="750" y="160" font-size="13" text-anchor="middle" fill="#1d1d1f">Examples: logistic regression, SVM, BERT classifiers</text>
+<text x="750" y="186" font-size="13" text-anchor="middle" fill="#52514e">Cannot generate text, only decide</text>
+<text x="750" y="212" font-size="13" text-anchor="middle" fill="#52514e">Usually more accurate with enough data</text>
+<line x1="500" y1="20" x2="500" y2="250" stroke="#dddbd4" stroke-width="1.5"/>
+<text x="500" y="282" font-size="13" text-anchor="middle" fill="#1d1d1f" font-style="italic">GPT and Claude are generative language models: enormous, neural versions of the n-gram model on this page.</text>
+</svg>

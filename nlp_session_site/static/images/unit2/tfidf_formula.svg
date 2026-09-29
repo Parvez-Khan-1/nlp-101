@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 330" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" xml:space="preserve" role="img" aria-label="TF-IDF: term frequency times inverse document frequency">
+<title>TF-IDF: term frequency times inverse document frequency</title>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a8983"/></marker><marker id="ahu" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2a78d6"/></marker><marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b9b7b0"/></marker></defs>
+<rect width="1000" height="330" fill="#fcfcfb"/>
+<rect x="40" y="30" width="260" height="130" rx="10" fill="#e5eefa" stroke="#2a78d6" stroke-width="2"/>
+<text x="170" y="66" font-size="22" text-anchor="middle" fill="#2a78d6" font-weight="700">TF</text>
+<text x="170" y="94" font-size="13" text-anchor="middle" fill="#52514e">term frequency:</text>
+<text x="170" y="114" font-size="13" text-anchor="middle" fill="#52514e">how often the word appears</text>
+<text x="170" y="134" font-size="13" text-anchor="middle" fill="#52514e">in THIS ticket</text>
+<text x="335" y="105" font-size="36" text-anchor="middle" fill="#52514e" font-weight="700">×</text>
+<rect x="370" y="30" width="260" height="130" rx="10" fill="#fcece6" stroke="#eb6834" stroke-width="2"/>
+<text x="500" y="66" font-size="22" text-anchor="middle" fill="#eb6834" font-weight="700">IDF</text>
+<text x="500" y="94" font-size="13" text-anchor="middle" fill="#52514e">inverse document frequency:</text>
+<text x="500" y="114" font-size="13" text-anchor="middle" fill="#52514e">how RARE the word is</text>
+<text x="500" y="134" font-size="13" text-anchor="middle" fill="#52514e">across ALL tickets</text>
+<text x="665" y="105" font-size="36" text-anchor="middle" fill="#52514e" font-weight="700">=</text>
+<rect x="700" y="30" width="260" height="130" rx="10" fill="#e3f5ef" stroke="#1baf7a" stroke-width="2"/>
+<text x="830" y="66" font-size="22" text-anchor="middle" fill="#1baf7a" font-weight="700">TF-IDF</text>
+<text x="830" y="94" font-size="13" text-anchor="middle" fill="#52514e">high when a word is frequent</text>
+<text x="830" y="114" font-size="13" text-anchor="middle" fill="#52514e">here but rare elsewhere</text>
+<text x="830" y="134" font-size="13" text-anchor="middle" fill="#52514e">= a good keyword</text>
+<text x="500" y="190" font-size="14" text-anchor="middle" fill="#1d1d1f" font-family="Consolas, Menlo, monospace">idf(word) = log( (1 + N) / (1 + df(word)) ) + 1          (scikit-learn default)</text>
+<text x="500" y="214" font-size="12.5" text-anchor="middle" fill="#52514e">N = number of documents,  df = number of documents containing the word</text>
+<rect x="40" y="240" width="215" height="70" rx="10" fill="#f1f0ec" stroke="none"/>
+<text x="147" y="264" font-size="12.5" text-anchor="middle" fill="#1d1d1f" font-weight="700">"order": in 23 of 120 tickets</text>
+<text x="147" y="286" font-size="13" text-anchor="middle" fill="#eb6834" font-weight="700">idf = 2.62</text>
+<text x="147" y="302" font-size="11.5" text-anchor="middle" fill="#52514e">common → low weight</text>
+<rect x="275" y="240" width="215" height="70" rx="10" fill="#f1f0ec" stroke="none"/>
+<text x="382" y="264" font-size="12.5" text-anchor="middle" fill="#1d1d1f" font-weight="700">"refund": in 12 of 120 tickets</text>
+<text x="382" y="286" font-size="13" text-anchor="middle" fill="#eb6834" font-weight="700">idf = 3.23</text>
+<text x="382" y="302" font-size="11.5" text-anchor="middle" fill="#52514e">medium</text>
+<rect x="510" y="240" width="215" height="70" rx="10" fill="#f1f0ec" stroke="none"/>
+<text x="617" y="264" font-size="12.5" text-anchor="middle" fill="#1d1d1f" font-weight="700">"otp": in 2 of 120 tickets</text>
+<text x="617" y="286" font-size="13" text-anchor="middle" fill="#eb6834" font-weight="700">idf = 4.70</text>
+<text x="617" y="302" font-size="11.5" text-anchor="middle" fill="#1d1d1f">rare → high weight</text>
+<rect x="745" y="240" width="215" height="70" rx="10" fill="#f1f0ec" stroke="none"/>
+<text x="852" y="264" font-size="12.5" text-anchor="middle" fill="#1d1d1f" font-weight="700">"hair": in 1 of 120 tickets</text>
+<text x="852" y="286" font-size="13" text-anchor="middle" fill="#eb6834" font-weight="700">idf = 5.10</text>
+<text x="852" y="302" font-size="11.5" text-anchor="middle" fill="#1d1d1f">very rare → highest</text>
+</svg>

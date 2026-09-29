@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit 3 · Word Embeddings | NLP in Practice</title>
+<meta name="description" content="Industry-focused notes on word embeddings: word2vec, negative sampling, Gensim, GloVe, word senses, window classification, neural networks, backpropagation, dependency parsing and semantic search.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="On this page">
+  <a class="home" href="index.html">← NLP in Practice</a>
+  <a class="toc-agenda" href="agenda.html">Session agenda</a>
+  <ol>
+    <li><a href="#why">Why embeddings?</a></li>
+    <li><a href="#vectors">Meaning as geometry</a></li>
+    <li><a href="#word2vec">word2vec</a></li>
+    <li><a href="#negative-sampling">Negative sampling</a></li>
+    <li><a href="#gensim">Hands-on with Gensim</a></li>
+    <li><a href="#glove">GloVe &amp; fastText</a></li>
+    <li><a href="#senses">Word senses &amp; limits</a></li>
+    <li><a href="#window">Word window classification</a></li>
+    <li><a href="#nn">Neural networks</a></li>
+    <li><a href="#backprop">Matrix calculus &amp; backprop</a></li>
+    <li><a href="#parsing">Dependency parsing</a></li>
+    <li><a href="#industry">Embeddings in industry</a></li>
+    <li><a href="#production">Embeddings in production</a></li>
+    <li><a href="#practice">Try it yourself</a></li>
+    <li><a href="#takeaways">Key takeaways</a></li>
+  </ol>
+</nav>
+
+<main>
+<header>
+  <div class="eyebrow">Unit 3 · Industry Expert Session · Symbiosis</div>
+  <h1>Word Embeddings</h1>
+  <p class="sub">How machines learned that "refund" and "money back" mean the same thing, the neural network and calculus that make it work, and how embeddings power search, recommendations and RAG in real products.</p>
+</header>
+
+<!-- 0 -->
+<section id="why">
+  <h2><span class="num">00</span>Why embeddings?</h2>
+  <p>Unit 2 ended with two failures. Our TF-IDF ticket router could not route <em>"paisa wapas kab milega"</em>, and a keyword search for <em>"courier is very slow"</em> returned <em>"portion size very small"</em> because both contain the word "very". Count-based features see words as unrelated symbols. They have no idea that "courier" and "rider" are the same kind of thing.</p>
+  <div class="callout thread">
+    <span class="label">The big idea</span>
+    <p><em>"You shall know a word by the company it keeps."</em> (J. R. Firth, 1957). Words that appear in similar contexts have similar meanings. "Biryani" and "pulao" both appear near "ordered", "spicy", "plate" and "rice". If we learn a vector for each word from the contexts it appears in, similar words end up with similar vectors. This is the <strong>distributional hypothesis</strong>, and every embedding method in this unit (and every LLM) is built on it.</p>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Embeddings are one of the most reused ideas in industry ML. The same technique that learns word vectors from sentences learns product vectors from shopping sessions, song vectors from playlists and listing vectors from click sequences. If you understand this unit, you understand the core of modern search and recommendation systems.</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="vectors">
+  <h2><span class="num">01</span>Word vectors: meaning as geometry</h2>
+  <p>A <strong>word embedding</strong> is a dense vector of typically 50–300 numbers per word, learned from data. Unlike one-hot vectors, the numbers are not hand-assigned, and the position of a word in this space carries meaning.</p>
+  <figure>
+    <img src="static/images/unit1/onehot_vs_dense.svg" alt="One-hot vectors where good, great and bad are all equally unrelated, compared with dense embeddings where good and great have similar values" loading="lazy">
+    <figcaption>From Unit 1: one-hot vectors are sparse and meaningless; embeddings are dense and learned.</figcaption>
+  </figure>
+  <p>Here are real GloVe vectors (50 numbers each) squeezed into 2 dimensions with PCA. No one told the model which words are foods, cities or emotions:</p>
+  <figure>
+    <img src="static/images/unit3/embeddings_clusters.png" alt="Scatter plot of GloVe word vectors projected to 2D: food words, city names and emotion words form three separate clusters" loading="lazy">
+    <figcaption>Foods, cities and emotions form separate clusters, learned only from which words appear near each other.</figcaption>
+  </figure>
+  <p>Similarity between two word vectors is measured with <strong>cosine similarity</strong>: the cosine of the angle between them. 1 means the same direction, 0 means unrelated.</p>
+<pre class="output">cosine(a, b) = (a · b) / (‖a‖ × ‖b‖)</pre>
+  <p>Directions in the space carry meaning too. The "male → female" direction is roughly the same across many word pairs, which is why vector arithmetic like <em>king − man + woman ≈ queen</em> works:</p>
+  <figure>
+    <img src="static/images/unit3/embeddings_analogy.png" alt="GloVe vectors for man, woman, king, queen, boy, girl, prince, princess, uncle and aunt projected to 2D, with arrows from each male word to its female counterpart pointing in roughly the same direction" loading="lazy">
+    <figcaption>Real GloVe vectors. The arrows from male to female words are roughly parallel.</figcaption>
+  </figure>
+</section>
+
+<!-- 2 -->
+<section id="word2vec">
+  <h2><span class="num">02</span>word2vec: learning vectors by predicting neighbours</h2>
+  <p><strong>word2vec</strong> (Mikolov et al., Google, 2013) made embeddings practical at scale. The trick is a <em>fake task</em>: train a tiny neural network to predict words from their neighbours. We do not care about the predictions. We keep the network's weights, and those weights are the word vectors.</p>
+  <figure>
+    <img src="static/images/unit3/cbow_vs_skipgram.svg" alt="CBOW averages the context words food, was, cold, and to predict the middle word delivered; skip-gram uses delivered to predict each context word" loading="lazy">
+    <figcaption>The two word2vec architectures.</figcaption>
+  </figure>
+  <p>Training slides a window over billions of words of text. For every position, the (center word, context word) pairs become training examples, exactly the skip-grams from Unit 2:</p>
+  <figure>
+    <img src="static/images/unit3/skipgram.svg" alt="A context window of two words each side around delivered; the center word is looked up in the embedding layer and trained to predict its neighbours food, was, cold and and, while random negative words are pushed apart" loading="lazy">
+    <figcaption>Skip-gram training on one window. The embedding layer is the thing we keep.</figcaption>
+  </figure>
+  <p>Every time "biryani" and "pulao" appear with the same neighbours, the network nudges their vectors in the same direction. After billions of updates, words used in similar ways end up close together.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens: "sentences" do not have to be text</span>
+    <p>word2vec only needs sequences of tokens. Replace words with product IDs and sentences with shopping sessions, and you get product embeddings: products bought in similar contexts end up close together. Airbnb published exactly this in 2018 (listing embeddings trained with skip-gram on user click sessions, used for similar-listing recommendations and search ranking), and the general idea is known as <em>item2vec</em>. The same approach works for songs in playlists, videos in watch sessions and dishes in food orders.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="negative-sampling">
+  <h2><span class="num">03</span>Negative sampling: the trick that made it fast</h2>
+  <p>To predict a neighbour properly, the network would have to compute a probability for <em>every word in the vocabulary</em> (a softmax) for every training pair. With a 100,000-word vocabulary and billions of pairs, that is far too slow.</p>
+  <figure>
+    <img src="static/images/unit3/negative_sampling.svg" alt="Full softmax scores all 100,000 words, costing 30 million multiply-adds per pair; negative sampling scores one real pair plus five random words, costing 1,800" loading="lazy">
+    <figcaption>Negative sampling turns one giant multi-class problem into a few small yes/no questions.</figcaption>
+  </figure>
+  <p><strong>Negative sampling</strong> changes the question from "which of 100,000 words is the neighbour?" to "is this pair real or fake?". For each real pair ("delivered", "cold") the model also sees <em>k</em> random words ("giraffe", "algebra"…) labelled as fake. It learns to push real neighbours together and random words apart.</p>
+  <ul>
+    <li>The word2vec paper recommends k = 5–20 for small datasets and 2–5 for very large ones. Gensim's default is <code>negative=5</code>.</li>
+    <li>Negatives are sampled in proportion to word frequency raised to the power 0.75, so very common words ("the") are not sampled too often and rare words get a fair chance.</li>
+  </ul>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Negative sampling is everywhere beyond word2vec. Recommendation models are trained on "items the user clicked" versus sampled "items they did not"; modern embedding models for semantic search and RAG are trained with <strong>contrastive learning</strong>, pulling a question towards its correct answer and away from sampled wrong answers. Choosing <em>good</em> negatives (hard, but truly wrong) is one of the most important practical tricks in training retrieval systems.</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="gensim">
+  <h2><span class="num">04</span>Hands-on with Gensim</h2>
+  <p><strong>Gensim</strong> is the standard Python library for classic embeddings. It can download pre-trained vectors and train your own.</p>
+
+  <h3>A. Use pre-trained GloVe vectors</h3>
+<pre><code>import gensim.downloader as api
+
+glove = api.load("glove-wiki-gigaword-50")        # 400,000 words x 50 dimensions, trained on Wikipedia + news
+
+print(glove["biryani"][:6])                        # first 6 of 50 numbers
+print([(w, round(s, 2)) for w, s in glove.most_similar("biryani", topn=5)])
+print([(w, round(s, 2)) for w, s in glove.most_similar(positive=["king", "woman"], negative=["man"], topn=3)])
+print([(w, round(s, 2)) for w, s in glove.most_similar(positive=["paris", "india"], negative=["france"], topn=3)])
+print(glove.doesnt_match(["breakfast", "cereal", "dinner", "lunch"]))</code></pre>
+<pre class="output">[-0.555   -0.73682 -1.4234  -0.31928  0.34046 -0.44858]
+[('hyderabadi', 0.75), ('biriyani', 0.75), ('udon', 0.73), ('kimchi', 0.73), ('eskişehir', 0.71)]
+[('queen', 0.85), ('throne', 0.77), ('prince', 0.76)]
+[('delhi', 0.89), ('bombay', 0.82), ('mumbai', 0.81)]
+cereal</pre>
+  <ul>
+    <li>Neighbours of "biryani" include "hyderabadi" and the spelling variant "biriyani", plus other dishes (udon, kimchi). The odd one out, "eskişehir", is a Turkish city: embeddings are useful but noisy.</li>
+    <li><em>paris − france + india ≈ delhi</em>: the "capital of" relation is a direction in the space.</li>
+    <li>"cereal" is the odd one out among meals: the model has learned categories.</li>
+  </ul>
+
+  <h3>B. Train your own word2vec</h3>
+<pre><code>import gensim.downloader as api
+from gensim.models import Word2Vec
+
+corpus = api.load("text8")                          # ~17 million words of Wikipedia text
+model = Word2Vec(corpus, vector_size=100, window=5, min_count=5,
+                 sg=1, negative=5, workers=2, epochs=1)   # sg=1: skip-gram, negative=5: negative sampling
+print(f"vocabulary = {len(model.wv):,} words")
+for w in ["food", "king", "computer"]:
+    print(w, "-&gt;", [x for x, _ in model.wv.most_similar(w, topn=5)])</code></pre>
+<pre class="output">vocabulary = 71,290 words
+food -&gt; ['goods', 'dairy', 'meat', 'raw', 'tobacco']
+king -&gt; ['prince', 'vii', 'queen', 'crowned', 'elector']
+computer -&gt; ['computers', 'hardware', 'computing', 'mainframe', 'graphics']</pre>
+  <p>This trained in <strong>52 seconds on 2 CPU cores</strong>. Note "food" → "goods", "tobacco": in Wikipedia, "food" often appears in trade and economics articles. <strong>Embeddings reflect the text they were trained on.</strong></p>
+
+  <h3>C. What happens with too little data</h3>
+<pre><code>import pandas as pd
+from gensim.models import Word2Vec
+
+tickets = [t.split() for t in pd.read_csv("support_tickets.csv")["text"]]   # only 120 short tickets
+
+w2v = Word2Vec(tickets, vector_size=50, window=3, min_count=1, sg=1, epochs=50, seed=1, workers=1)
+print("word2vec  refund -&gt;", [w for w, _ in w2v.wv.most_similar("refund", topn=5)])</code></pre>
+<pre class="output">word2vec  refund -&gt; ['not', 'my', 'the', 'to', 'order']</pre>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha</span>
+    <p>With 120 tickets, the "nearest words" to <em>refund</em> are just the most common words. Embeddings need <strong>millions of words</strong> to be meaningful. In industry, you almost always start from pre-trained vectors (or a pre-trained model) and only train your own when you have a large domain corpus, for example years of support chats, medical notes or legal documents.</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="glove">
+  <h2><span class="num">05</span>Word vectors 2: GloVe and fastText</h2>
+  <h3>GloVe: global co-occurrence statistics</h3>
+  <p>word2vec learns from one window at a time. <strong>GloVe</strong> (Global Vectors; Pennington, Socher &amp; Manning, Stanford, 2014) first counts how often every pair of words co-occurs across the <em>whole corpus</em>, then learns vectors whose dot products match those statistics. The key insight is that <strong>ratios</strong> of co-occurrence probabilities carry meaning:</p>
+  <figure>
+    <img src="static/images/unit3/glove_ratios.svg" alt="Table of co-occurrence probabilities with ice and steam for probe words solid, gas, water and fashion; the ratio is 8.9 for solid, 0.085 for gas, 1.36 for water and 0.96 for fashion" loading="lazy">
+    <figcaption>The ratio isolates what distinguishes "ice" from "steam" (solid vs gas) and cancels out what they share (water) or neither has (fashion).</figcaption>
+  </figure>
+
+  <h3>fastText: vectors for words you have never seen</h3>
+  <p><strong>fastText</strong> (Facebook AI Research, 2016–17) represents each word as a bag of <em>character n-grams</em> (the idea from Unit 2). A word's vector is the sum of its pieces' vectors, so it can build a vector for a misspelled or brand-new word.</p>
+<pre><code>import gensim.downloader as api
+from gensim.models import FastText
+
+ft = FastText(api.load("text8"), vector_size=100, window=5, min_count=5, epochs=1, workers=2)
+for typo in ["delivry", "restaurnt", "biriyani"]:
+    print(f"{typo:&lt;10} in vocab? {typo in ft.wv.key_to_index!s:&lt;5} nearest -&gt;", [w for w, _ in ft.wv.most_similar(typo, topn=3)])</code></pre>
+<pre class="output">delivry    in vocab? False nearest -&gt; ['dessert', 'dessau', 'deli']
+restaurnt  in vocab? False nearest -&gt; ['restaurant', 'restart', 'restraint']
+biriyani   in vocab? False nearest -&gt; ['birka', 'gemara', 'birla']</pre>
+  <p>An honest result: <strong>"restaurnt" works perfectly</strong>. "delivry" gets a vector (word2vec would raise an error) but the neighbours are only spelling look-alikes. "biriyani" fails because Wikipedia text has almost no Indian food vocabulary. Subwords help with typos; they do not replace domain data.</p>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>word2vec</th><th>GloVe</th><th>fastText</th></tr></thead>
+    <tbody>
+      <tr><td>Learns from</td><td>Local context windows</td><td>Global co-occurrence counts</td><td>Local windows + character n-grams</td></tr>
+      <tr><td>Unseen / misspelled words</td><td class="bad">No vector</td><td class="bad">No vector</td><td class="good">Builds one from pieces</td></tr>
+      <tr><td>Pre-trained vectors</td><td>Google News: 3M words × 300d</td><td>Wikipedia, Common Crawl, Twitter</td><td>157 languages, including Hindi, Marathi, Tamil</td></tr>
+      <tr><td>Best for</td><td>Custom items (products, songs), large corpora</td><td>Good general-purpose English vectors</td><td>Typos, rich morphology, Indian languages</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 6 -->
+<section id="senses">
+  <h2><span class="num">06</span>Word senses and the limits of static embeddings</h2>
+  <p>word2vec, GloVe and fastText are <strong>static</strong>: each word gets exactly one vector, whatever the sentence. Real GloVe output shows the consequences:</p>
+<pre><code>import gensim.downloader as api
+glove = api.load("glove-wiki-gigaword-50")
+
+print("good~great:", round(float(glove.similarity("good", "great")), 2),
+      " good~bad:", round(float(glove.similarity("good", "bad")), 2))
+print("bank   -&gt;", [w for w, _ in glove.most_similar("bank", topn=5)])
+print("python -&gt;", [w for w, _ in glove.most_similar("python", topn=5)])
+print("man:doctor :: woman:?", [w for w, _ in glove.most_similar(positive=["doctor", "woman"], negative=["man"], topn=3)])</code></pre>
+<pre class="output">good~great: 0.8  good~bad: 0.8
+bank   -&gt; ['banks', 'securities', 'banking', 'investment', 'exchange']
+python -&gt; ['reticulated', 'spamalot', 'php', 'owl', 'mouse']
+man:doctor :: woman:? ['nurse', 'child', 'pregnant']</pre>
+  <div class="grid">
+    <div class="card" style="--col:var(--c6)"><h4>Antonyms look similar</h4><p class="eg">"good" is as close to "bad" as to "great" (0.8 each): opposites appear in the same contexts. A problem for sentiment!</p></div>
+    <div class="card" style="--col:var(--c3)"><h4>One vector per word</h4><p class="eg">"bank" is only financial; the river sense is lost. "python" mixes the snake (reticulated), Monty Python (spamalot) and the language (php).</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Learned bias</h4><p class="eg">man : doctor :: woman : <strong>nurse</strong>. Embeddings absorb the stereotypes in their training text.</p></div>
+  </div>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha: bias is a business risk</span>
+    <p>If a resume-screening or ad-targeting system uses biased embeddings, it can quietly rank candidates or show job ads differently by gender. In 2018 Reuters reported that Amazon scrapped an experimental ML recruiting tool after it learned to penalise resumes containing the word "women's". Teams now test models for bias before launch, and regulators increasingly expect it.</p>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens: the fix is context</span>
+    <p>The real solution to word senses is <strong>contextual embeddings</strong>: models like BERT and GPT (Unit 5) give "bank" a different vector in "river bank" and "bank loan". That is why static embeddings are now used mainly where they are cheap and good enough (features for small models, recommendations, on-device apps), and contextual models are used for understanding.</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="window">
+  <h2><span class="num">07</span>Word window classification</h2>
+  <p>How do we use embeddings for a task like named entity recognition? Classify each word using a <strong>window</strong> of vectors around it: the word itself plus its neighbours, concatenated into one input vector.</p>
+  <figure>
+    <img src="static/images/unit3/window_classification.svg" alt="Five words around kolkata are converted to GloVe vectors, concatenated into a 250-number input, passed through a hidden layer of 64 neurons and a softmax that predicts CITY" loading="lazy">
+    <figcaption>Word window classification for NER. The output probabilities shown are illustrative.</figcaption>
+  </figure>
+<pre><code>import numpy as np, gensim.downloader as api
+from sklearn.neural_network import MLPClassifier
+
+glove = api.load("glove-wiki-gigaword-50")
+PAD = np.zeros(50)
+
+def windows(tokens, size=2):
+    """For each word: concatenate vectors of [w-2, w-1, w, w+1, w+2] -&gt; 250 numbers."""
+    vec = lambda w: glove[w] if w in glove else PAD
+    padded = ["&lt;pad&gt;"] * size + tokens + ["&lt;pad&gt;"] * size
+    return [np.concatenate([vec(w) for w in padded[i:i + 2*size + 1]]) for i in range(len(tokens))]
+
+# Tiny labelled training set: DISH, CITY or O (other)
+train = [
+    ("i ordered biryani in pune", "O O DISH O CITY"),
+    ("the pizza was cold in mumbai", "O DISH O O O CITY"),
+    ("delivery to delhi took an hour", "O O CITY O O O"),
+    ("paneer was great", "DISH O O"),
+    ("best burger in bangalore", "O DISH O CITY"),
+    ("my noodles never arrived in chennai", "O DISH O O O CITY"),
+    ("please send the curry fast", "O O O DISH O"),
+    ("we live in hyderabad and love dosa", "O O O CITY O O DISH"),
+]
+X, y = [], []
+for sent, tags in train:
+    X += windows(sent.split()); y += tags.split()
+
+clf = MLPClassifier(hidden_layer_sizes=(64,), max_iter=2000, random_state=0).fit(X, y)
+
+# Words the model has NEVER seen as training examples
+for sent in ["i ordered sushi in kolkata", "the lasagna reached jaipur late"]:
+    tokens = sent.split()
+    print(" ".join(f"{t}/{tag}" for t, tag in zip(tokens, clf.predict(windows(tokens)))))</code></pre>
+<pre class="output">i/O ordered/O sushi/DISH in/O kolkata/CITY
+the/O lasagna/DISH reached/O jaipur/CITY late/O</pre>
+  <p>From just <strong>8 training sentences</strong>, the model correctly tags sushi, lasagna, Kolkata and Jaipur, none of which it was trained on. With TF-IDF or one-hot features this is impossible: an unseen word is just an unknown column. With embeddings, "sushi" arrives already close to "biryani" and "pizza". <strong>This is transfer learning</strong>: knowledge from billions of words of pre-training reused for a tiny labelled task, and it is the same principle that makes BERT and LLMs so useful.</p>
+</section>
+
+<!-- 8 -->
+<section id="nn">
+  <h2><span class="num">08</span>Neural networks: a quick industry refresher</h2>
+  <p>The <code>MLPClassifier</code> above is a small feed-forward neural network. Every model from here on (RNNs, Transformers, LLMs) is built from the same pieces.</p>
+  <figure>
+    <img src="static/images/unit3/neural_network.svg" alt="A neural network with an input layer of word vectors, a hidden layer computing ReLU of W1 x plus b1, and an output layer computing softmax of W2 h plus b2 over CITY, DISH and O" loading="lazy">
+    <figcaption>Input → hidden layer → output probabilities.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Piece</th><th>What it does</th><th>In our window classifier</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Weights W and bias b</strong></td><td>Matrices of learned numbers; a layer computes <code>Wx + b</code></td><td>W₁ is 64 × 250: 16,000 numbers</td></tr>
+      <tr><td><strong>Activation (ReLU)</strong></td><td>Adds non-linearity: <code>max(0, x)</code>. Without it, stacked layers collapse into one linear model</td><td>Lets the model combine "in ___" with "looks like a city"</td></tr>
+      <tr><td><strong>Softmax</strong></td><td>Turns raw scores into probabilities that sum to 1</td><td>P(CITY), P(DISH), P(O)</td></tr>
+      <tr><td><strong>Loss (cross-entropy)</strong></td><td>How wrong the prediction was: <code>−log P(correct class)</code></td><td>Low when P(CITY) is high for "kolkata"</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 9 -->
+<section id="backprop">
+  <h2><span class="num">09</span>Matrix calculus and backpropagation</h2>
+  <p>Training means adjusting every weight a little in the direction that reduces the loss. To know that direction we need the <strong>gradient</strong>: the derivative of the loss with respect to every weight. <strong>Backpropagation</strong> computes all of them efficiently by applying the chain rule backwards through the network, reusing intermediate results.</p>
+  <figure>
+    <img src="static/images/unit3/backprop_graph.svg" alt="Computational graph from inputs through z equals w dot x plus b, p equals sigmoid of z, to loss equals minus log p; forward values z 0, p 0.5, loss 0.693; backward gradients dL/dp minus 2, dL/dz minus 0.5, dL/dw minus 0.5 and minus 1" loading="lazy">
+    <figcaption>One neuron, one example, fully worked. These numbers are produced by the code below.</figcaption>
+  </figure>
+<pre><code>import numpy as np
+
+x, y = np.array([1.0, 2.0]), 1.0                # one training example, true label = 1
+w, b = np.array([0.5, -0.3]), 0.1               # current weights
+sigmoid = lambda z: 1 / (1 + np.exp(-z))
+
+def loss(w, b):
+    p = sigmoid(w @ x + b)
+    return -np.log(p) if y == 1 else -np.log(1 - p)
+
+# forward pass
+z = w @ x + b; p = sigmoid(z)
+print(f"forward : z={z:.2f}  p={p:.3f}  loss={loss(w, b):.3f}")
+
+# backward pass (chain rule): dL/dz = p - y, dL/dw = dL/dz * x, dL/db = dL/dz
+dz = p - y
+dw, db = dz * x, dz
+print(f"backward: dL/dw={dw}  dL/db={db:.2f}")
+
+# sanity check with a numerical gradient (what every framework's tests do)
+eps = 1e-6
+num_dw0 = (loss(w + [eps, 0], b) - loss(w - [eps, 0], b)) / (2 * eps)
+print(f"check   : numerical dL/dw0={num_dw0:.4f}")
+
+# one gradient-descent step
+lr = 0.1
+w, b = w - lr * dw, b - lr * db
+print(f"update  : w={w}  b={b:.2f}  new loss={loss(w, b):.3f}")</code></pre>
+<pre class="output">forward : z=0.00  p=0.500  loss=0.693
+backward: dL/dw=[-0.5 -1. ]  dL/db=-0.50
+check   : numerical dL/dw0=-0.5000
+update  : w=[ 0.55 -0.2 ]  b=0.15  new loss=0.554</pre>
+  <h4>The matrix view</h4>
+  <p>For a whole layer <code>h = Wx + b</code>, the same chain rule gives compact matrix formulas: if <code>δ = ∂L/∂h</code> is the gradient arriving from above, then <code>∂L/∂W = δ xᵀ</code>, <code>∂L/∂b = δ</code> and <code>∂L/∂x = Wᵀ δ</code> (which is passed further back). That last term is how the gradient reaches the <em>word vectors themselves</em>, which is exactly how word2vec learns its embeddings.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens: you will not write this by hand, but you must understand it</span>
+    <p>PyTorch, TensorFlow and JAX compute gradients automatically (<strong>autograd</strong>). Engineers do not derive gradients for work. But understanding backprop is how you debug real training problems: a loss that becomes <code>NaN</code> (exploding gradients), a model that stops learning (vanishing gradients, the key problem of RNNs in Unit 4), a learning rate that is too high, or a layer accidentally frozen. The numerical gradient check in the code above is also how framework developers test their own gradient code.</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="parsing">
+  <h2><span class="num">10</span>Linguistic structure: dependency parsing</h2>
+  <p>A <strong>dependency parse</strong> shows the grammatical structure of a sentence as arrows from each word to the word it depends on (its <em>head</em>), labelled with the relation. Here is spaCy's real parse of a mixed review:</p>
+  <figure>
+    <img src="static/images/unit3/dependency_parse.svg" alt="Dependency parse of The biryani was cold but the raita was amazing: biryani is the nominal subject of was, cold is its adjectival complement; raita is the subject of the second was, amazing its complement; the two clauses are joined by conj and cc" loading="lazy">
+    <figcaption>Rendered with spaCy's displaCy. nsubj = subject, acomp = adjective complement, conj/cc = the two clauses joined by "but".</figcaption>
+  </figure>
+<pre><code>import spacy
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("The biryani was cold but the raita was amazing.")
+
+for t in doc:
+    print(f"{t.text:&lt;8} {t.dep_:&lt;7} head={t.head.text}")
+
+# aspect-opinion pairs: noun subject  &lt;-  verb "be"  -&gt;  adjective complement
+pairs = []
+for tok in doc:
+    if tok.dep_ == "acomp":
+        subj = [c for c in tok.head.children if c.dep_ == "nsubj"]
+        if subj:
+            pairs.append((subj[0].text, tok.text))
+print(pairs)</code></pre>
+<pre class="output">The      det     head=biryani
+biryani  nsubj   head=was
+was      ROOT    head=was
+cold     acomp   head=was
+but      cc      head=was
+the      det     head=raita
+raita    nsubj   head=was
+was      conj    head=was
+amazing  acomp   head=was
+.        punct   head=was
+[('biryani', 'cold'), ('raita', 'amazing')]</pre>
+  <p>A bag-of-words model sees one review with "cold" and "amazing" and calls it mixed. The parse tells us <strong>which dish</strong> got <strong>which opinion</strong>: the kitchen needs to fix the biryani, not the raita. This is <em>aspect-based sentiment</em> from Unit 1, now with real structure behind it.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens: parsing meets embeddings</span>
+    <p>Fast, accurate parsers became practical when Chen &amp; Manning (2014) fed <strong>word embeddings</strong> into a small neural network that predicts parsing actions one step at a time, which is the same window-and-neural-network recipe as section 07. spaCy's parser follows this transition-based approach. In industry, dependency parses are used for aspect extraction, relation extraction ("<em>Company A</em> acquired <em>Company B</em>"), question understanding and rule-based information extraction on top of statistical models.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="industry">
+  <h2><span class="num">11</span>Embeddings in industry: semantic search</h2>
+  <p>Back to our failed keyword search. Represent each ticket as the average of its word vectors, and search by cosine similarity instead of shared words:</p>
+<pre><code>import numpy as np, pandas as pd, gensim.downloader as api
+
+glove = api.load("glove-wiki-gigaword-50")
+tickets = pd.read_csv("support_tickets.csv")["text"].tolist()
+
+def embed(text):
+    """Sentence vector = average of its word vectors (unknown words are skipped)."""
+    vecs = [glove[w] for w in text.lower().replace(",", " ").split() if w in glove]
+    v = np.mean(vecs, axis=0)
+    return v / np.linalg.norm(v)
+
+T = np.array([embed(t) for t in tickets])          # in production: stored in a vector index
+
+for query in ["money back", "reimbursement pending", "courier is very slow"]:
+    scores = T @ embed(query)                       # cosine similarity with every ticket
+    top = scores.argsort()[::-1][:3]
+    print(f"\n{query!r}")
+    for i in top:
+        print(f"  {scores[i]:.2f}  {tickets[i]}")</code></pre>
+<pre class="output">'money back'
+  0.92  i want my money back
+  0.92  my account got blocked
+  0.92  payment done still asking to pay again
+
+'reimbursement pending'
+  0.76  amount debited, payment pending since morning
+  0.69  payment failed but amount debited
+  0.67  partial refund is wrong
+
+'courier is very slow'
+  0.89  why is my order taking so long
+  0.89  rider says he is near but not here
+  0.87  order shows delivered but i did not get it</pre>
+  <ul>
+    <li><strong>"courier is very slow"</strong> now finds three delivery tickets that share <em>no words</em> with the query. BM25 returned "portion size very small".</li>
+    <li><strong>"reimbursement pending"</strong> finds payment and refund tickets; "reimbursement" never appears in the data.</li>
+    <li><strong>"money back"</strong> also returns "my account got blocked" at 0.92. Averaging lets common words like "my" dominate short texts. This is why production systems use <em>sentence-embedding models</em> trained for search (Unit 5), not averaged word vectors.</li>
+  </ul>
+  <figure>
+    <img src="static/images/unit3/vector_search.svg" alt="Offline, tickets are embedded and stored in a vector index such as FAISS, HNSW, pgvector or Elasticsearch kNN; online, the query is embedded with the same model and the nearest neighbours are returned in milliseconds" loading="lazy">
+    <figcaption>The production version: a vector index replaces <code>T @ embed(query)</code>, which would be too slow over millions of documents.</figcaption>
+  </figure>
+  <div class="callout industry">
+    <span class="label">Industry lens: from inverted index to vector index</span>
+    <p>In Unit 2 the inverted index made keyword search fast. <strong>Vector indexes</strong> do the same for embeddings, using approximate nearest-neighbour algorithms such as <strong>HNSW</strong> (a navigable graph of vectors). Popular options: Meta's open-source <strong>FAISS</strong> library, dedicated vector databases, <strong>pgvector</strong> inside PostgreSQL, and the kNN vector search built into Elasticsearch and OpenSearch. Most production search and RAG systems now run <strong>hybrid search</strong>: BM25 for exact terms plus vectors for meaning.</p>
+  </div>
+  <h3>Where else embeddings are used</h3>
+  <div class="grid">
+    <div class="card" style="--col:var(--c3)"><h4>Recommendations</h4><p class="eg">Item embeddings from sessions: "customers who ordered this also ordered…".</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Features for small models</h4><p class="eg">Embedding features help classifiers generalise from few labels, as in section 07.</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Clustering &amp; deduplication</h4><p class="eg">Group thousands of tickets into themes; merge near-duplicate products or complaints.</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>RAG chatbots</h4><p class="eg">Retrieve the right policy paragraph to answer a customer's question (Unit 5).</p></div>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="production">
+  <h2><span class="num">12</span>Embeddings in production</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Concern</th><th>What it means in practice</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Memory</strong></td><td>400,000 words × 300 dimensions × 4 bytes ≈ 480 MB. Google News word2vec (3M × 300) ≈ 3.6 GB. Teams trim the vocabulary, reduce dimensions or quantise vectors.</td></tr>
+      <tr><td><strong>Domain mismatch</strong></td><td>Wikipedia vectors do not know "biriyani", "UPI" or your product names. Fine-tune or train on domain text when you have millions of words; otherwise use fastText or subword models.</td></tr>
+      <tr><td><strong>Out-of-vocabulary words</strong></td><td>Decide what happens to unknown words (skip, zero vector, subwords) and monitor how often it happens.</td></tr>
+      <tr><td><strong>Model versioning</strong></td><td>Vectors from two different models are not comparable. Change the embedding model and you must <em>re-embed every document</em> in the index.</td></tr>
+      <tr><td><strong>Evaluation</strong></td><td>Analogy puzzles (<em>intrinsic</em> tests) are fun but do not predict business value. Measure on your task (<em>extrinsic</em>): did search clicks, routing accuracy or recommendation conversions improve?</td></tr>
+      <tr><td><strong>Bias</strong></td><td>Test for stereotypes before using embeddings in decisions about people (hiring, lending, ads).</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>A practical decision rule used by many teams: start with keyword search or TF-IDF (Unit 2). Add embeddings when users search with different words than your documents use, or when you need to generalise from few labels. Move to contextual models (Unit 5) when meaning depends on the whole sentence. Each step costs more compute, so only take it when the metric says it is worth it.</p>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="practice">
+  <h2><span class="num">13</span>Try it yourself</h2>
+  <div class="callout demo">
+    <span class="label">Hands-on</span>
+    <p>In Google Colab:</p>
+<pre><code>!pip install gensim spacy scikit-learn pandas
+!python -m spacy download en_core_web_sm</code></pre>
+    <p>Upload <a href="static/data/support_tickets.csv" download>support_tickets.csv</a> from Unit 2 and try:</p>
+    <ul>
+      <li>Find three analogies that work in GloVe and three that fail. Why do they fail?</li>
+      <li>Add "dish" words from your city to the window classifier test sentences. Which does it get right?</li>
+      <li>Improve the semantic search by ignoring very common words (the, my, is) when averaging. Does "money back" stop returning "account got blocked"?</li>
+      <li>Parse five of your own restaurant reviews and extract (aspect, opinion) pairs. Where does the simple rule break?</li>
+    </ul>
+  </div>
+  <h3>Discussion questions</h3>
+  <details><summary>1. Why can a model trained on 8 sentences recognise "kolkata" as a city?</summary>
+    <p>Because its input is a pre-trained GloVe vector learned from billions of words, where "kolkata" is already close to "mumbai", "delhi" and "chennai". The small classifier only has to learn "this region of the space means CITY". This is transfer learning.</p></details>
+  <details><summary>2. "good" and "bad" have similarity 0.8 in GloVe. Why, and what does it mean for a sentiment model?</summary>
+    <p>Opposites appear in the same contexts ("the food was good/bad"), so distributional methods place them close together. A sentiment model built only on static embeddings will struggle to separate them; it needs labelled training data or contextual models.</p></details>
+  <details><summary>3. Your company switches from GloVe to a newer embedding model. What has to happen to the vector index?</summary>
+    <p>Every document must be re-embedded with the new model and the index rebuilt, because vectors from different models live in different spaces and cannot be compared. Teams plan this as a migration, often running both indexes in parallel for a while.</p></details>
+  <details><summary>4. How could a food-delivery app use word2vec without any text at all?</summary>
+    <p>Treat each customer's order history as a "sentence" of dish or restaurant IDs and train skip-gram on it. Dishes ordered in similar contexts get similar vectors, powering "you may also like" recommendations and similar-restaurant suggestions.</p></details>
+  <details><summary>5. Why is negative sampling needed, and where else is the idea used?</summary>
+    <p>A full softmax over a large vocabulary is too expensive per training pair (30 million multiply-adds vs 1,800 with k = 5 for a 100,000-word, 300-dimension model). The idea of contrasting real pairs with sampled negatives is used in recommendation training and in the contrastive training of modern retrieval and RAG embedding models.</p></details>
+  <details><summary>6. You will never write backprop by hand at work. Why learn it?</summary>
+    <p>To debug training: NaN losses, exploding or vanishing gradients, frozen layers, bad learning rates. It also explains why RNNs struggle with long sequences (Unit 4) and how gradients reach the embedding layer.</p></details>
+</section>
+
+<!-- 14 -->
+<section id="takeaways">
+  <h2><span class="num">14</span>Key takeaways</h2>
+  <div class="takeaways">
+    <ul>
+      <li>Embeddings turn words into dense vectors where similar meaning = nearby vectors, learned from context (the distributional hypothesis).</li>
+      <li>word2vec learns vectors via a fake prediction task; negative sampling makes it about 16,000× cheaper per training pair.</li>
+      <li>GloVe learns from global co-occurrence ratios; fastText adds character n-grams for typos and unseen words.</li>
+      <li>Static embeddings have one vector per word: no word senses, antonyms look similar, and they absorb bias.</li>
+      <li>Pre-trained embeddings enable transfer learning: 8 labelled sentences were enough to tag unseen dishes and cities.</li>
+      <li>Backpropagation is the chain rule applied backwards; frameworks automate it, but understanding it is how you debug training.</li>
+      <li>Dependency parsing tells you which opinion belongs to which aspect.</li>
+      <li>In industry, embeddings power semantic search (with vector indexes), recommendations and RAG, usually alongside BM25.</li>
+    </ul>
+  </div>
+
+  <nav class="pager" aria-label="Unit navigation">
+    <a class="prev" href="unit2_feature_extraction.html"><small>Previous</small>← Unit 2 · Feature Extraction</a>
+    <span class="next soon"><small>Next · coming soon</small>Unit 4 · Recurrent Neural Networks</span>
+  </nav>
+</section>
+
+<footer>NLP in Practice · Industry Expert Session · Symbiosis</footer>
+</main>
+</div>
+<script src="static/js/main.js"></script>
+</body>
+</html>

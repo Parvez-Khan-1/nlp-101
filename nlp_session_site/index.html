@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NLP in Practice — Parvez Khan</title>
+  <meta name="description" content="Industry expert session on Natural Language Processing for Symbiosis students: course notes, diagrams, runnable code and real-world examples."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:         #f8f9fb;
+      --bg2:        #f1f2f5;
+      --surface:    #ffffff;
+      --border:     #e2e4e9;
+      --border2:    #cdd0d8;
+      --ink:        #0a0c10;
+      --ink2:       #2e3240;
+      --ink3:       #6b7280;
+      --accent:     #1a56db;
+      --accent-bg:  #eef3fd;
+      --accent2:    #7c3aed;
+      --accent2-bg: #f3f0ff;
+      --green:      #047857;
+      --green-bg:   #ecfdf5;
+      --amber:      #b45309;
+      --amber-bg:   #fffbeb;
+      --radius:     10px;
+      --radius-lg:  14px;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font-family: 'Inter', sans-serif; font-weight: 400;
+      line-height: 1.75; font-size: 20px;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(26,86,219,0.07) 1px, transparent 1px),
+        radial-gradient(circle, rgba(124,58,237,0.04) 1px, transparent 1px);
+      background-size: 40px 40px, 80px 80px;
+      background-position: 0 0, 20px 20px;
+    }
+    body::after {
+      content: ''; position: fixed; top: 0; left: 0; right: 0; height: 420px;
+      z-index: 0; pointer-events: none;
+      background: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(26,86,219,0.08), transparent);
+    }
+    .page, nav, footer { position: relative; z-index: 1; }
+    a { color: var(--accent); }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(248,249,251,0.94); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border); height: 58px;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 4rem;
+    }
+    .nav-logo { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; font-weight: 600; color: var(--ink); letter-spacing: 0.02em; text-decoration: none; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 2.2rem; list-style: none; }
+    .nav-links a { font-size: 0.85rem; color: var(--ink3); text-decoration: none; font-weight: 500; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--ink); }
+
+    /* LAYOUT */
+    .page { max-width: 1100px; margin: 0 auto; padding: 0 4rem; }
+
+    /* HEADER */
+    .page-header { padding: 7rem 0 4rem; border-bottom: 1px solid var(--border); }
+    .page-kicker {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--accent-bg); color: var(--accent);
+      font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.35rem 0.85rem; border-radius: 999px;
+      border: 1px solid rgba(26,86,219,0.18); margin-bottom: 1.75rem;
+    }
+    .page-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(2.2rem, 4.4vw, 3.8rem); line-height: 1.04; letter-spacing: -0.03em;
+      font-weight: 800; color: var(--ink); margin-bottom: 1.5rem;
+    }
+    .page-title .accent-word { color: var(--accent); }
+    .page-desc { font-size: 1.15rem; color: var(--ink3); max-width: 700px; line-height: 1.8; }
+    .header-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.88rem; font-weight: 600; padding: 0.7rem 1.5rem; border-radius: var(--radius);
+      text-decoration: none; transition: all 0.15s; white-space: nowrap;
+      background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(26,86,219,0.25);
+    }
+    .btn:hover { background: #1648c2; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(26,86,219,0.3); }
+    .btn.ghost { background: var(--surface); color: var(--ink2); border: 1px solid var(--border); box-shadow: none; }
+    .btn.ghost:hover { border-color: var(--border2); color: var(--ink); }
+
+    /* ABOUT */
+    .about-section { padding: 4.5rem 0; border-bottom: 1px solid var(--border); }
+    .about-layout { display: grid; grid-template-columns: 1fr auto; gap: 4rem; align-items: start; }
+    .section-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600;
+      color: var(--ink3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.75rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .section-label::before { content: ''; display: inline-block; width: 18px; height: 1.5px; background: var(--ink3); }
+    .about-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2.8rem; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 0.35rem; line-height: 1.05; }
+    .about-role { font-size: 0.9rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.75rem; }
+    .about-bio { font-size: 1.05rem; color: var(--ink2); line-height: 1.85; margin-bottom: 1.1rem; }
+    .about-bio strong { color: var(--ink); font-weight: 600; }
+    .belief-card {
+      background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent2);
+      border-radius: 0 var(--radius) var(--radius) 0; padding: 1.4rem 1.75rem; margin-top: 2rem;
+    }
+    .belief-card p { font-size: 1.08rem; font-style: italic; color: var(--ink2); line-height: 1.75; margin: 0; }
+    .qr { width: 130px; height: 130px; border-radius: 8px; display: block; border: 1px solid var(--border); background: #fff; }
+    .qr-link { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-decoration: none; }
+    .qr-link span { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 600; color: var(--accent); }
+    .qr-link:hover span { text-decoration: underline; }
+
+    /* SECTIONS */
+    .section { padding: 4.5rem 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    h2 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(1.8rem, 2.8vw, 2.5rem); font-weight: 800; line-height: 1.12; letter-spacing: -0.025em; color: var(--ink); margin-bottom: 0.4rem; }
+    .section-sub { font-size: 0.9rem; color: var(--ink3); margin-bottom: 2.25rem; font-style: italic; }
+    p { margin-bottom: 1.3rem; color: var(--ink2); font-size: 1.05rem; line-height: 1.85; }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--ink); font-weight: 600; }
+    em { color: var(--accent2); font-style: italic; }
+    code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; background: var(--bg2); padding: 0.15em 0.45em; border-radius: 4px; color: var(--accent2); border: 1px solid var(--border); }
+
+    .callout {
+      background: var(--accent-bg); border: 1px solid rgba(26,86,219,0.18); border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0; padding: 1.2rem 1.6rem; margin: 2rem 0;
+    }
+    .callout-label { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.45rem; }
+    .callout p { margin: 0; font-size: 1rem; }
+
+    .why-matters-box {
+      margin-top: 2rem; background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+      border: 1px solid #bfdbfe; border-radius: var(--radius-lg); padding: 1.75rem 2rem;
+    }
+    .why-matters-label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.8rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+    .why-matters-text { font-size: 1rem; color: var(--ink2); line-height: 1.85; margin-bottom: 1.5rem; }
+    .why-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding-top: 1.25rem; border-top: 1px solid rgba(26,86,219,0.12); }
+    .why-stat { text-align: center; }
+    .why-stat-num { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 0.35rem; }
+    .why-stat-label { font-size: 0.8rem; color: var(--ink3); line-height: 1.5; }
+
+    /* AGENDA TIMELINE */
+    .timeline { margin: 2.5rem 0 1.5rem; position: relative; padding-left: 2rem; }
+    .timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+    .timeline-item { position: relative; margin-bottom: 1rem; }
+    .timeline-dot { width: 16px; height: 16px; border-radius: 50%; position: absolute; left: -1.9rem; top: 1.35rem; border: 2px solid var(--surface); }
+    .timeline-content { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.5rem; transition: box-shadow 0.15s; display: grid; grid-template-columns: 130px 1fr; gap: 1.25rem; }
+    .timeline-content:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .timeline-era { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; padding-top: 0.2rem; }
+    .timeline-era small { display: block; color: var(--ink3); font-weight: 500; }
+    .timeline-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--ink); margin-bottom: 0.3rem; letter-spacing: -0.01em; }
+    .timeline-desc { font-size: 0.9rem; color: var(--ink3); line-height: 1.65; margin: 0; }
+
+    /* UNIT CARDS */
+    .unit-grid { display: grid; grid-template-columns: 1fr; gap: 1.1rem; margin: 2rem 0; }
+    .unit-card {
+      display: grid; grid-template-columns: 300px 1fr; gap: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      overflow: hidden; text-decoration: none; color: inherit;
+      transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+    }
+    a.unit-card:hover { box-shadow: 0 6px 22px rgba(0,0,0,0.07); border-color: var(--border2); transform: translateY(-2px); }
+    .unit-thumb { background: #fcfcfb; border-right: 1px solid var(--border); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .unit-thumb img { width: 100%; height: auto; display: block; }
+    .unit-body { padding: 1.5rem 1.75rem; }
+    .unit-num { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; display: flex; gap: 0.6rem; align-items: center; }
+    .status { font-size: 0.6rem; padding: 0.12rem 0.55rem; border-radius: 999px; letter-spacing: 0.06em; }
+    .status.live { background: var(--green-bg); color: var(--green); border: 1px solid rgba(4,120,87,0.2); }
+    .status.soon { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(180,83,9,0.2); }
+    .unit-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 0.45rem; }
+    .unit-desc { font-size: 0.92rem; color: var(--ink3); line-height: 1.65; margin-bottom: 0.9rem; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .chip { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 500; padding: 0.2rem 0.55rem; border-radius: 6px; background: var(--bg2); color: var(--ink2); border: 1px solid var(--border); }
+    .unit-cta { margin-top: 1rem; font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+    .unit-card.disabled { opacity: 0.72; grid-template-columns: 1fr; }
+    .unit-card.disabled .unit-cta { color: var(--ink3); }
+
+    /* HANDS-ON */
+    .hands-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+    .hands-card { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.4rem; }
+    .hands-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .hands-title { font-size: 0.98rem; font-weight: 700; color: var(--ink); margin-bottom: 0.45rem; }
+    .hands-desc { font-size: 0.88rem; color: var(--ink3); line-height: 1.65; margin: 0; }
+    pre.cmd { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; background: #1e1f23; color: #e9ecef; border-radius: var(--radius); padding: 0.8rem 1rem; margin-top: 0.75rem; overflow-x: auto; white-space: pre; line-height: 1.6; }
+
+    /* TAKEAWAYS */
+    .takeaway-list { counter-reset: tw; list-style: none; margin: 2rem 0; display: flex; flex-direction: column; gap: 0.85rem; }
+    .takeaway-list li { counter-increment: tw; display: flex; gap: 1.25rem; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.3rem 1.5rem; }
+    .takeaway-list li::before { content: "0" counter(tw); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600; color: var(--accent); min-width: 26px; padding-top: 0.1rem; }
+    .tw-title { font-weight: 600; font-size: 1rem; color: var(--ink); margin-bottom: 0.25rem; }
+    .tw-desc { font-size: 0.9rem; color: var(--ink3); margin: 0; line-height: 1.65; }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem 4rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--ink3); flex-wrap: wrap; gap: 0.5rem; }
+    footer span { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+
+    @media (max-width: 900px) {
+      .page { padding: 0 2rem; }
+      nav { padding: 0 2rem; }
+      footer { padding: 2rem; }
+      .unit-card { grid-template-columns: 1fr; }
+      .unit-thumb { border-right: 0; border-bottom: 1px solid var(--border); max-height: 220px; overflow: hidden; }
+      .hands-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 640px) {
+      body { font-size: 18px; }
+      .page { padding: 0 16px; }
+      nav { padding: 0 16px; }
+      footer { padding: 1.5rem 16px; }
+      .nav-links { display: none; }
+      .page-header { padding: 5.5rem 0 3rem; }
+      .about-layout { grid-template-columns: 1fr; gap: 1.5rem; }
+      .why-stats { grid-template-columns: 1fr; }
+      .timeline-content { grid-template-columns: 1fr; gap: 0.3rem; }
+      .why-matters-box { padding: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#top">parvez<span>.</span>khan</a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#why">Why NLP</a></li>
+    <li><a href="#agenda">Agenda</a></li>
+    <li><a href="#units">Course Notes</a></li>
+    <li><a href="#hands-on">Hands-on</a></li>
+    <li><a href="#takeaways">Takeaways</a></li>
+  </ul>
+</nav>
+
+<div class="page" id="top">
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="page-kicker">Industry Expert Session · Symbiosis</div>
+    <h1 class="page-title">NLP in <span class="accent-word">Practice</span></h1>
+    <p class="page-desc">From bag-of-words to large language models — how Natural Language Processing is actually built, deployed and used in industry. Concepts explained through real products, real data and runnable code.</p>
+    <div class="header-actions">
+      <a class="btn" href="#units">Start with the course notes →</a>
+      <a class="btn ghost" href="agenda.html">View the 2-hour agenda</a>
+    </div>
+  </header>
+
+  <!-- ABOUT -->
+  <section class="about-section" id="about">
+    <div class="section-label">About Me</div>
+    <div class="about-layout">
+      <div>
+        <div class="about-name">Parvez Khan</div>
+        <div class="about-role">Principal AI Architect · Mastercard</div>
+        <p class="about-bio">
+          I'm a Principal AI Architect at Mastercard with <strong>over 10 years of experience</strong> building AI systems that operate at a scale most engineers only read about. My journey spans the full arc of modern AI — from writing <strong>Stanford NLP algorithms in Java</strong> to architecting cutting-edge <strong>Multi-Agent AI systems</strong> powering global financial infrastructure today.
+        </p>
+        <p class="about-bio">
+          At Mastercard, I've worn multiple hats — <strong>Lead ML Engineer</strong>, <strong>ML Engineering Manager</strong>, and now <strong>Principal AI Architect</strong> — where I design large-scale Agentic AI platforms, Responsible AI services, and oversee a large portfolio of predictive models running in production at global scale. I hold a Master's degree in Computer Applications.
+        </p>
+        <div class="belief-card">
+          <p>"No matter how advanced AI gets, every production-ready solution will always stand or fall on the strength of its engineering foundation. Great AI is less about magic — and more about very clever plumbing."</p>
+        </div>
+      </div>
+      <a class="qr-link" href="https://www.linkedin.com/in/parvez-k-389065105" target="_blank" rel="noopener">
+        <img class="qr" src="static/images/Parvez-LinkedIn-QR.jpeg" width="130" height="130" alt="QR code linking to Parvez Khan's LinkedIn profile"/>
+        <span>Connect on LinkedIn ↗</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- 01 WHY -->
+  <section class="section" id="why">
+    <div class="section-label">01 · Why This Session</div>
+    <h2>Language Is the Interface to AI</h2>
+    <div class="section-sub">Why NLP skills are now core engineering skills</div>
+    <p>Your syllabus covers tokenization, TF-IDF, word2vec, RNNs and Seq2Seq. It can feel like history when everyone is talking about ChatGPT. It is not. <strong>Every one of these ideas is still running in production today</strong> — inside search engines, spam filters, recommendation systems and, in evolved form, inside every large language model.</p>
+    <p>These notes connect each syllabus topic to how it is used in real products: what problem it solves, where it breaks, and what engineers actually do about it.</p>
+    <div class="callout">
+      <div class="callout-label">How these notes are different</div>
+      <p>Every unit follows one real problem — a food-delivery app drowning in Hinglish support tickets — and every code output on these pages comes from actually running the code. Where the tools fail, the failure is shown, because that is where the real engineering lessons are.</p>
+    </div>
+    <div class="why-matters-box">
+      <div class="why-matters-label">What you will be able to do</div>
+      <p class="why-matters-text">Explain how text becomes numbers, build a working ticket classifier and a mini search engine, understand why embeddings made semantic search possible, and see how all of it leads to <strong>RNNs, Transformers and LLMs</strong> — with the <em>industry context</em> that turns textbook knowledge into interview-ready understanding.</p>
+      <div class="why-stats">
+        <div class="why-stat"><div class="why-stat-num">5</div><div class="why-stat-label">Syllabus units, each mapped to real industry use</div></div>
+        <div class="why-stat"><div class="why-stat-num">35</div><div class="why-stat-label">Runnable code examples with real outputs (Units 1–3)</div></div>
+        <div class="why-stat"><div class="why-stat-num">1</div><div class="why-stat-label">Running example: a support-ticket system, end to end</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 AGENDA -->
+  <section class="section" id="agenda">
+    <div class="section-label">02 · Session Agenda</div>
+    <h2>The 2-Hour Session</h2>
+    <div class="section-sub">Fast through the foundations, deep on embeddings, RNNs and the shift to Transformers</div>
+    <div class="timeline">
+      <div class="timeline-item"><div class="timeline-dot" style="background:#868e96"></div><div class="timeline-content"><div class="timeline-era" style="color:#6b7280">0:00 – 0:10<small>10 min</small></div><div><div class="timeline-title">Opening hook</div><p class="timeline-desc">A scene from <em>Her</em> (2013), and one messy Hinglish review through a 2005 keyword filter vs a modern LLM.</p></div></div></div>
+      <div class="timeline-item"><div class="timeline-dot" style="background:#f08c00"></div><div class="timeline-content"><div class="timeline-era" style="color:#b45309">0:10 – 0:25<small>15 min</small></div><div><div class="timeline-title">Fast-forward foundations</div><p class="timeline-desc">The production NLP pipeline, pre-processing, TF-IDF and why it is still the baseline every team must beat.</p></div></div></div>
+      <div class="timeline-item"><div class="timeline-dot" style="background:#1a56db"></div><div class="timeline-content"><div class="timeline-era" style="color:#1a56db">0:25 – 0:50<small>25 min</small></div><div><div class="timeline-title">Word embeddings: the big leap</div><p class="timeline-desc">word2vec, negative sampling, GloVe, fastText — live Gensim demo, semantic search and bias.</p></div></div></div>
+      <div class="timeline-item"><div class="timeline-dot" style="background:#adb5bd"></div><div class="timeline-content"><div class="timeline-era" style="color:#6b7280">0:50 – 0:55<small>5 min</small></div><div><div class="timeline-title">Break &amp; quick questions</div></div></div></div>
+      <div class="timeline-item"><div class="timeline-dot" style="background:#047857"></div><div class="timeline-content"><div class="timeline-era" style="color:#047857">0:55 – 1:07<small>12 min</small></div><div><div class="timeline-title">Neural networks &amp; CNNs for text</div><p class="timeline-desc">Backprop intuition and 1D convolutions as learned n-gram detectors.</p></div></div></div>
+      <div class="timeline-item"><div class="timeline-dot" style="background:#7c3aed"></div><div class="timeline-content"><div class="timeline-era" style="color:#7c3aed">1:07 – 1:27<small>20 min</small></div><div><div class="timeline-title">RNNs, LSTMs &amp; GRUs</div><p class="timeline-desc">Sequence models, vanishing gradients and gated memory — and why they were replaced.</p></div></div></div>
+      <div class="timeline-item"><div class="timeline-dot" style="background:#e8590c"></div><div class="timeline-content"><div class="timeline-era" style="color:#c2410c">1:27 – 1:42<small>15 min</small></div><div><div class="timeline-title">Seq2Seq, attention &amp; the paradigm shift</div><p class="timeline-desc">Machine translation, attention, Transformers, BERT vs GPT.</p></div></div></div>
+      <div class="timeline-item"><div class="timeline-dot" style="background:#1971c2"></div><div class="timeline-content"><div class="timeline-era" style="color:#1971c2">1:42 – 2:00<small>18 min</small></div><div><div class="timeline-title">NLP in industry today &amp; open Q&amp;A</div><p class="timeline-desc">LLMs, RAG, guardrails and evaluation; papers worth reading; skills recruiters look for.</p></div></div></div>
+    </div>
+    <a class="btn ghost" href="agenda.html">Open the detailed agenda →</a>
+  </section>
+
+  <!-- 03 UNITS -->
+  <section class="section" id="units">
+    <div class="section-label">03 · Course Notes</div>
+    <h2>Five Units, One Real Problem</h2>
+    <div class="section-sub">Follow the syllabus in order — each unit builds on the last</div>
+    <div class="unit-grid">
+
+      <a class="unit-card" href="unit1_introduction_to_language.html">
+        <div class="unit-thumb"><img src="static/images/unit1/nlp_system_architecture.svg" alt="Preview: where the NLP engine sits in a product architecture" loading="lazy"/></div>
+        <div class="unit-body">
+          <div class="unit-num">Unit 1 <span class="status live">Available</span></div>
+          <div class="unit-title">Introduction to Language</div>
+          <p class="unit-desc">How NLP evolved, how it fits inside AI, where it is used (including healthcare), and how messy text is cleaned, tokenized and tagged — plus where the NLP engine sits in a real product.</p>
+          <div class="chips"><span class="chip">NLP vs AI</span><span class="chip">Applications</span><span class="chip">Clinical NLP</span><span class="chip">Phases of NLP</span><span class="chip">Tokenization</span><span class="chip">POS &amp; NER</span><span class="chip">Regex</span><span class="chip">Architecture</span></div>
+          <div class="unit-cta">Read Unit 1 →</div>
+        </div>
+      </a>
+
+      <a class="unit-card" href="unit2_feature_extraction.html">
+        <div class="unit-thumb"><img src="static/images/unit2/inverted_index.svg" alt="Preview: how an inverted index is built and queried" loading="lazy"/></div>
+        <div class="unit-body">
+          <div class="unit-num">Unit 2 <span class="status live">Available</span></div>
+          <div class="unit-title">Feature Extraction</div>
+          <p class="unit-desc">Turning text into numbers: bag of words, n-grams, TF-IDF, search indexing with Elasticsearch, a working ticket router, language models, smoothing and Naive Bayes.</p>
+          <div class="chips"><span class="chip">One-hot</span><span class="chip">BoW</span><span class="chip">N-grams</span><span class="chip">TF-IDF</span><span class="chip">Inverted index</span><span class="chip">BM25</span><span class="chip">Markov models</span><span class="chip">Naive Bayes</span></div>
+          <div class="unit-cta">Read Unit 2 →</div>
+        </div>
+      </a>
+
+      <a class="unit-card" href="unit3_word_embeddings.html">
+        <div class="unit-thumb"><img src="static/images/unit3/embeddings_clusters.png" alt="Preview: GloVe word vectors forming clusters" loading="lazy"/></div>
+        <div class="unit-body">
+          <div class="unit-num">Unit 3 <span class="status live">Available</span></div>
+          <div class="unit-title">Word Embeddings</div>
+          <p class="unit-desc">How machines learned that "refund" and "money back" mean the same thing: word2vec, GloVe, fastText, window classification, backpropagation, dependency parsing and semantic search.</p>
+          <div class="chips"><span class="chip">word2vec</span><span class="chip">Negative sampling</span><span class="chip">Gensim</span><span class="chip">GloVe</span><span class="chip">Backprop</span><span class="chip">Dependency parsing</span><span class="chip">Vector search</span></div>
+          <div class="unit-cta">Read Unit 3 →</div>
+        </div>
+      </a>
+
+      <div class="unit-card disabled">
+        <div class="unit-body">
+          <div class="unit-num">Unit 4 <span class="status soon">Coming soon</span></div>
+          <div class="unit-title">Recurrent Neural Networks</div>
+          <p class="unit-desc">RNN language models, vanishing gradients, LSTMs and GRUs — and where sequence models still run in production.</p>
+          <div class="chips"><span class="chip">RNN</span><span class="chip">Vanishing gradients</span><span class="chip">LSTM</span><span class="chip">GRU</span></div>
+        </div>
+      </div>
+
+      <div class="unit-card disabled">
+        <div class="unit-body">
+          <div class="unit-num">Unit 5 <span class="status soon">Coming soon</span></div>
+          <div class="unit-title">Machine Translation &amp; the Paradigm Shift</div>
+          <p class="unit-desc">Seq2Seq, attention, BERT, LaMDA and GPT, conversational AI, and a few current research papers worth reading.</p>
+          <div class="chips"><span class="chip">Seq2Seq</span><span class="chip">Attention</span><span class="chip">Transformers</span><span class="chip">BERT</span><span class="chip">GPT</span><span class="chip">RAG</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 04 HANDS-ON -->
+  <section class="section" id="hands-on">
+    <div class="section-label">04 · Hands-on</div>
+    <h2>Run Everything Yourself</h2>
+    <div class="section-sub">No setup beyond a browser and a Google account</div>
+    <div class="hands-grid">
+      <div class="hands-card">
+        <div class="hands-icon">🧪</div>
+        <div class="hands-title">Open Google Colab</div>
+        <p class="hands-desc">Create a new notebook and install the libraries used across the units:</p>
+        <pre class="cmd">!pip install spacy nltk gensim scikit-learn pandas
+!python -m spacy download en_core_web_sm</pre>
+      </div>
+      <div class="hands-card">
+        <div class="hands-icon">📄</div>
+        <div class="hands-title">Download the dataset</div>
+        <p class="hands-desc">120 synthetic support tickets in four queues, with Hinglish and typos. Used in Units 2 and 3.</p>
+        <p style="margin-top:0.9rem"><a class="btn ghost" href="static/data/support_tickets.csv" download>support_tickets.csv ↓</a></p>
+      </div>
+      <div class="hands-card">
+        <div class="hands-icon">📋</div>
+        <div class="hands-title">Copy, run, break it</div>
+        <p class="hands-desc">Every code block has a copy button and shows its real output. Each unit ends with experiments and discussion questions — change the inputs and see where the models fail.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 TAKEAWAYS -->
+  <section class="section" id="takeaways">
+    <div class="section-label">05 · Close</div>
+    <h2>Where You Go From Here</h2>
+    <div class="section-sub">Three actions. Start this week.</div>
+    <ul class="takeaway-list">
+      <li><div><div class="tw-title">Build the ticket router on your own data</div><p class="tw-desc">Take the Unit 2 TF-IDF classifier and train it on something from your own world — college notices, product reviews, WhatsApp group messages. Then add the Unit 3 semantic search on top. That is a real, explainable NLP project for your resume.</p></div></li>
+      <li><div><div class="tw-title">Always build the baseline first</div><p class="tw-desc">Before reaching for BERT or an LLM, measure what TF-IDF + logistic regression can do. Industry teams do exactly this, and interviewers love candidates who can justify a model choice with numbers.</p></div></li>
+      <li><div><div class="tw-title">Read one engineering blog post per week</div><p class="tw-desc">Search, recommendation and NLP teams at companies like Airbnb, Uber, LinkedIn and Swiggy publish how they build real systems. One post a week, and you will think differently from every other candidate.</p></div></li>
+    </ul>
+    <div class="callout">
+      <div class="callout-label">The one thing to remember</div>
+      <p>Every modern LLM still starts with tokens, still learns from context, and still predicts the next word. The fundamentals in these notes are not history — they are the foundation.</p>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <span>NLP in Practice · Industry Expert Session · Symbiosis</span>
+  <span>Parvez Khan · Principal AI Architect · Mastercard</span>
+</footer>
+
+</body>
+</html>

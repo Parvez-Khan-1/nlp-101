@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 360" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" xml:space="preserve" role="img" aria-label="Bag-of-words document-term matrix for four reviews">
+<title>Bag-of-words document-term matrix for four reviews</title>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a8983"/></marker><marker id="ahu" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2a78d6"/></marker><marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b9b7b0"/></marker></defs>
+<rect width="1000" height="360" fill="#fcfcfb"/>
+<text x="20" y="34" font-size="14" text-anchor="start" fill="#1d1d1f" font-weight="700">Documents</text>
+<rect x="20" y="58" width="300" height="46" rx="8" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="170.0" y="85.55" font-size="13" text-anchor="middle" fill="#1d1d1f">"food was cold"</text>
+<line x1="324" y1="81" x2="380" y2="81" stroke="#8a8983" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="20" y="120" width="300" height="46" rx="8" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="170.0" y="147.55" font-size="13" text-anchor="middle" fill="#1d1d1f">"delivery was late"</text>
+<line x1="324" y1="143" x2="380" y2="143" stroke="#8a8983" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="20" y="182" width="300" height="46" rx="8" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="170.0" y="209.55" font-size="13" text-anchor="middle" fill="#1d1d1f">"food was great, delivery was late"</text>
+<line x1="324" y1="205" x2="380" y2="205" stroke="#8a8983" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="20" y="244" width="300" height="46" rx="8" fill="#e9e7f4" stroke="#4a3aa7" stroke-width="2"/>
+<text x="170.0" y="271.55" font-size="13" text-anchor="middle" fill="#1d1d1f">"great food great price"</text>
+<line x1="324" y1="267" x2="380" y2="267" stroke="#8a8983" stroke-width="2" marker-end="url(#ah)"/>
+<text x="666.0" y="34" font-size="14" text-anchor="middle" fill="#1d1d1f" font-weight="700">Vocabulary (learned from all documents) → one column per word</text>
+<text x="438.0" y="52" font-size="13" text-anchor="middle" fill="#2a78d6" font-weight="700">cold</text>
+<text x="514.0" y="52" font-size="13" text-anchor="middle" fill="#2a78d6" font-weight="700">delivery</text>
+<text x="590.0" y="52" font-size="13" text-anchor="middle" fill="#2a78d6" font-weight="700">food</text>
+<text x="666.0" y="52" font-size="13" text-anchor="middle" fill="#2a78d6" font-weight="700">great</text>
+<text x="742.0" y="52" font-size="13" text-anchor="middle" fill="#2a78d6" font-weight="700">late</text>
+<text x="818.0" y="52" font-size="13" text-anchor="middle" fill="#2a78d6" font-weight="700">price</text>
+<text x="894.0" y="52" font-size="13" text-anchor="middle" fill="#2a78d6" font-weight="700">was</text>
+<rect x="403" y="60" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="438.0" y="87" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="479" y="60" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="514.0" y="87" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="555" y="60" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="590.0" y="87" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="631" y="60" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="666.0" y="87" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="707" y="60" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="742.0" y="87" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="783" y="60" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="818.0" y="87" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="859" y="60" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="894.0" y="87" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="403" y="122" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="438.0" y="149" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="479" y="122" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="514.0" y="149" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="555" y="122" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="590.0" y="149" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="631" y="122" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="666.0" y="149" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="707" y="122" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="742.0" y="149" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="783" y="122" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="818.0" y="149" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="859" y="122" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="894.0" y="149" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="403" y="184" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="438.0" y="211" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="479" y="184" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="514.0" y="211" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="555" y="184" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="590.0" y="211" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="631" y="184" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="666.0" y="211" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="707" y="184" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="742.0" y="211" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="783" y="184" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="818.0" y="211" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="859" y="184" width="70" height="42" rx="6" fill="#5090dd" stroke="none"/>
+<text x="894.0" y="211" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">2</text>
+<rect x="403" y="246" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="438.0" y="273" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="479" y="246" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="514.0" y="273" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="555" y="246" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="590.0" y="273" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="631" y="246" width="70" height="42" rx="6" fill="#5090dd" stroke="none"/>
+<text x="666.0" y="273" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">2</text>
+<rect x="707" y="246" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="742.0" y="273" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<rect x="783" y="246" width="70" height="42" rx="6" fill="#9abfeb" stroke="none"/>
+<text x="818.0" y="273" font-size="16" text-anchor="middle" fill="#1d1d1f" font-weight="700">1</text>
+<rect x="859" y="246" width="70" height="42" rx="6" fill="#f1f0ec" stroke="none"/>
+<text x="894.0" y="273" font-size="16" text-anchor="middle" fill="#a3a19a">0</text>
+<text x="500" y="322" font-size="13" text-anchor="middle" fill="#52514e">Each review becomes a row of word counts. Word order is thrown away ("bag" of words).</text>
+<text x="500" y="344" font-size="13" text-anchor="middle" fill="#52514e">Real vocabularies have 10,000–1,000,000 columns, and most cells are 0 (a sparse matrix).</text>
+</svg>

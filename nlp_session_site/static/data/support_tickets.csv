@@ -1,0 +1,121 @@
+text,label
+pizza was burnt,food_quality
+email verification failing,account_app
+rider cancelled and order stuck,delivery_delay
+rotis were burnt,food_quality
+refund chahiye order cancel kiya tha,refund_payment
+where is my order,delivery_delay
+biryani was too spicy and oily,food_quality
+"got chicken instead of paneer, i am vegetarian",food_quality
+account shows wrong name,account_app
+refund not received yet for order,refund_payment
+money deducted twice please refund,refund_payment
+delivery time changed from 20 to 55 min,delivery_delay
+no delivery partner assigned,delivery_delay
+cold coffee was warm,food_quality
+order shows delivered but i did not get it,delivery_delay
+need refund for missing item,refund_payment
+been waiting 90 minutes,delivery_delay
+cashback not credited,refund_payment
+partial refund is wrong,refund_payment
+language setting not saving,account_app
+naan was hard like rubber,food_quality
+the fries were cold and limp,food_quality
+refund to source not received,refund_payment
+cannot see order history,account_app
+rider says he is near but not here,delivery_delay
+why is my order taking so long,delivery_delay
+quantity bahut kam thi,food_quality
+app shows error while placing order,account_app
+profile photo not uploading,account_app
+estimated time keeps increasing,delivery_delay
+notifications not working,account_app
+payment failed but amount debited,refund_payment
+"order delayed during rain, no info",delivery_delay
+delivery guy not picking my call,delivery_delay
+dark mode broken on android,account_app
+delivery delayed without reason,delivery_delay
+refund status kya hai,refund_payment
+portion size very small,food_quality
+still waiting for my order,delivery_delay
+"wrong item delivered, ordered veg got non veg",food_quality
+search not showing restaurants,account_app
+"40 min late, no update",delivery_delay
+cake was damaged in the box,food_quality
+insect found in the food,food_quality
+wallet balance deducted without order,refund_payment
+delivery boy not moving on map,delivery_delay
+order kab aayega bahut late ho gaya,delivery_delay
+"late tha, khana thanda ho gaya",delivery_delay
+food not delivered yet,delivery_delay
+referral code not working,account_app
+unable to add new card,account_app
+found hair in my food,food_quality
+order stuck at restaurant for an hour,delivery_delay
+saved addresses disappeared,account_app
+drink spilled inside the bag,food_quality
+too much salt in the curry,food_quality
+unable to rate my order,account_app
+how to delete my account,account_app
+food was cold and stale,food_quality
+"cannot login, otp not coming",account_app
+payment done still asking to pay again,refund_payment
+gst charged twice on bill,refund_payment
+order abhi tak nahi aaya,delivery_delay
+cannot change phone number,account_app
+"khana bekar tha, taste nahi tha",food_quality
+tip got charged twice,refund_payment
+mutton was chewy and not fresh,food_quality
+password reset link expired,account_app
+someone else logged into my account,account_app
+tracking not updating,delivery_delay
+i want my money back,refund_payment
+refund promised 5 days ago still nothing,refund_payment
+"amount debited, payment pending since morning",refund_payment
+sauce missing and salad was wilted,food_quality
+delivery bahut slow hai aaj,delivery_delay
+noodles were sticky and bland,food_quality
+my account got blocked,account_app
+food quality bahut kharab,food_quality
+why was i charged a cancellation fee,refund_payment
+app logs me out again and again,account_app
+"delivery partner lost, calling me again and again",delivery_delay
+bank says refund not initiated,refund_payment
+item missing from my order,food_quality
+when will i get my refund,refund_payment
+app bahut slow chal raha hai,account_app
+cannot apply filters in app,account_app
+app stuck on loading screen,account_app
+app keeps crashing on checkout,account_app
+burger was soggy,food_quality
+otp nahi aa raha,account_app
+promo page is blank,account_app
+unable to update my address,account_app
+food poisoning after eating this,food_quality
+"refund in 7 days they said, 10 days over",refund_payment
+paid via paytm but order shows unpaid,refund_payment
+"dal was sour, seems spoiled",food_quality
+app not opening after update,account_app
+my food is taking forever,delivery_delay
+rice was undercooked,food_quality
+location not detected correctly,account_app
+order late by one hour,delivery_delay
+"upi payment stuck, money gone",refund_payment
+rider stopped for another order,delivery_delay
+order not picked up by rider yet,delivery_delay
+double payment ho gaya,refund_payment
+paisa kat gaya but order nahi hua,refund_payment
+promo code discount not given,refund_payment
+paneer was raw and smelled bad,food_quality
+"coupon not applied, charged full price",refund_payment
+sweets were stale,food_quality
+"late delivery again, third time this week",delivery_delay
+wrong amount charged on my card,refund_payment
+"packaging leaked, curry everywhere",food_quality
+membership renewed without asking,account_app
+cancelled order but no refund in wallet,refund_payment
+charged extra for delivery fee,refund_payment
+tasted nothing like the photo,food_quality
+delivery was supposed to be 30 min,delivery_delay
+"please return my money, order never came",refund_payment
+rider went to wrong address,delivery_delay

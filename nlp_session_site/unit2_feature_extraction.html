@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit 2 · Feature Extraction | NLP in Practice</title>
+<meta name="description" content="Industry-focused notes on turning text into features: one-hot, bag of words, n-grams, skip-grams, TF-IDF, language models, smoothing, Naive Bayes and generative models.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="On this page">
+  <a class="home" href="index.html">← NLP in Practice</a>
+  <a class="toc-agenda" href="agenda.html">Session agenda</a>
+  <ol>
+    <li><a href="#why">Why feature extraction?</a></li>
+    <li><a href="#onehot">One-hot encoding</a></li>
+    <li><a href="#bow">Bag of words</a></li>
+    <li><a href="#ngrams">N-grams as features</a></li>
+    <li><a href="#skipgrams">Skip-grams</a></li>
+    <li><a href="#tfidf">TF-IDF</a></li>
+    <li><a href="#indexing">Indexing &amp; search engines</a></li>
+    <li><a href="#case-study">Case study: ticket router</a></li>
+    <li><a href="#lm">Probabilistic language models</a></li>
+    <li><a href="#markov">N-grams &amp; Markov models</a></li>
+    <li><a href="#smoothing">Smoothing</a></li>
+    <li><a href="#naive-bayes">Naive Bayes</a></li>
+    <li><a href="#generative">Generative models of language</a></li>
+    <li><a href="#production">Features in production</a></li>
+    <li><a href="#practice">Try it yourself</a></li>
+    <li><a href="#takeaways">Key takeaways</a></li>
+  </ol>
+</nav>
+
+<main>
+<header>
+  <div class="eyebrow">Unit 2 · Industry Expert Session · Symbiosis</div>
+  <h1>Feature Extraction</h1>
+  <p class="sub">How to turn text into numbers a model can learn from, and how to predict the next word. These "classic" techniques still run inside search engines, spam filters and the first version of almost every NLP product.</p>
+</header>
+
+<!-- 0 -->
+<section id="why">
+  <h2><span class="num">00</span>Why feature extraction?</h2>
+  <p>Machine learning models only understand numbers. <strong>Feature extraction</strong> is the step that turns <em>"order late tha, refund chahiye"</em> into a vector of numbers. The choice of features decides what the model can possibly learn: if a feature cannot tell "not good" from "good", no model on top of it can either.</p>
+  <figure>
+    <img src="static/images/unit2/representation_roadmap.svg" alt="Roadmap of text representations: one-hot, bag of words, n-grams and TF-IDF in Unit 2, then word embeddings in Unit 3 and contextual models like BERT and GPT in Unit 5" loading="lazy">
+    <figcaption>This unit covers the four count-based representations on the left.</figcaption>
+  </figure>
+  <div class="callout thread">
+    <span class="label">Running example, continued</span>
+    <p>We continue with the food-delivery app from Unit 1. This time we have <strong>120 labelled support tickets</strong> in four queues: <code>refund_payment</code>, <code>delivery_delay</code>, <code>food_quality</code> and <code>account_app</code>. The data is synthetic but written to look real, with Hinglish and typos. <a href="static/data/support_tickets.csv" download>Download support_tickets.csv</a> to run every example on this page.</p>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens: "old" does not mean unused</span>
+    <p>Everything in this unit predates deep learning, and all of it is still in production. Elasticsearch and OpenSearch rank search results with BM25, a descendant of TF-IDF. Spam filters still use Naive Bayes. And when a team starts a new text-classification project, the first model is very often TF-IDF + logistic regression, because it trains in seconds, runs in under a millisecond and explains its decisions.</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="onehot">
+  <h2><span class="num">01</span>One-hot encoding</h2>
+  <p>The simplest representation: give every possible value its own column, put a <code>1</code> in the matching column and <code>0</code> everywhere else.</p>
+<pre><code>from sklearn.preprocessing import OneHotEncoder
+import numpy as np
+
+# 1) Categorical features: the most common use of one-hot in industry
+cities = np.array([["Pune"], ["Mumbai"], ["Pune"], ["Delhi"]])
+enc = OneHotEncoder(handle_unknown="ignore").fit(cities)
+print(enc.categories_[0])
+print(enc.transform(cities).toarray())
+print("unseen city -&gt;", enc.transform([["Nagpur"]]).toarray())   # all zeros, no crash
+
+# 2) Words: one column per vocabulary word
+vocab = ["cold", "delivery", "food", "late", "refund"]
+one_hot = {w: np.eye(len(vocab), dtype=int)[i] for i, w in enumerate(vocab)}
+print("food  -&gt;", one_hot["food"])
+print("food · refund =", one_hot["food"] @ one_hot["refund"])</code></pre>
+<pre class="output">['Delhi' 'Mumbai' 'Pune']
+[[0. 0. 1.]
+ [0. 1. 0.]
+ [0. 0. 1.]
+ [1. 0. 0.]]
+unseen city -&gt; [[0. 0. 0.]]
+food  -&gt; [0 0 1 0 0]
+food · refund = 0</pre>
+  <h4>What this shows</h4>
+  <ul>
+    <li><strong>Great for categories:</strong> city, cuisine, payment method, app version. Every tabular ML model in industry uses one-hot (or a close cousin) for columns like these.</li>
+    <li><strong>Unseen values:</strong> <code>handle_unknown="ignore"</code> turns a new city into all zeros instead of crashing the production service. Always set this.</li>
+    <li><strong>Poor for words:</strong> the dot product of any two different words is 0, so "food" is as unrelated to "meal" as it is to "refund". And a real vocabulary means 50,000+ columns per word.</li>
+  </ul>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>You will still meet one-hot text every day, just in disguise: the <strong>label</strong> of a classifier is one-hot (<code>[0, 1, 0, 0]</code> = <code>delivery_delay</code>), and the very first layer of every neural language model is a lookup keyed by a one-hot token ID.</p>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="bow">
+  <h2><span class="num">02</span>Bag of words (CountVectorizer)</h2>
+  <p>A <strong>bag of words (BoW)</strong> represents a whole document by counting how many times each vocabulary word appears in it. Word order is thrown away, as if the words were shaken in a bag.</p>
+  <figure>
+    <img src="static/images/unit2/bow_matrix.svg" alt="Four reviews converted into a document-term matrix with columns cold, delivery, food, great, late, price and was, holding word counts" loading="lazy">
+    <figcaption>The document-term matrix. These values are the real output of the code below.</figcaption>
+  </figure>
+<pre><code>from sklearn.feature_extraction.text import CountVectorizer
+
+reviews = [
+    "food was cold",
+    "delivery was late",
+    "food was great, delivery was late",
+    "great food great price",
+]
+vec = CountVectorizer()
+X = vec.fit_transform(reviews)
+
+print(vec.get_feature_names_out())
+print(X.toarray())</code></pre>
+<pre class="output">['cold' 'delivery' 'food' 'great' 'late' 'price' 'was']
+[[1 0 1 0 0 0 1]
+ [0 1 0 0 1 0 1]
+ [0 1 1 1 1 0 2]
+ [0 0 1 2 0 1 0]]</pre>
+  <p>Notice that <code>X</code> is a <strong>sparse matrix</strong>: scikit-learn only stores the non-zero cells. On our 120 tickets, only about 1.5% of the cells are non-zero. On millions of documents, sparse storage is the difference between megabytes and terabytes.</p>
+
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha: order matters</span>
+    <p>Bag of words cannot tell these two reviews apart:</p>
+<pre><code>from sklearn.feature_extraction.text import CountVectorizer
+
+a, b = "not good, very bad", "very good, not bad"
+
+uni = CountVectorizer().fit([a, b])
+print("unigrams :", (uni.transform([a]) != uni.transform([b])).nnz == 0)   # identical vectors?
+
+bi = CountVectorizer(ngram_range=(1, 2)).fit([a, b])
+print("+bigrams :", (bi.transform([a]) != bi.transform([b])).nnz == 0)
+print(bi.get_feature_names_out())</code></pre>
+<pre class="output">unigrams : True
++bigrams : False
+['bad' 'good' 'good not' 'good very' 'not' 'not bad' 'not good' 'very'
+ 'very bad' 'very good']</pre>
+    <p>With single words, a complaint and a compliment get <strong>exactly the same vector</strong>. Adding bigrams ("not good", "very bad") fixes it. That is the motivation for the next section.</p>
+  </div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>BoW is behind topic dashboards ("top words in 1-star reviews this week"), simple document similarity, deduplication of near-identical tickets, and it is the input to classic topic models like LDA, still used to explore large collections of feedback.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="ngrams">
+  <h2><span class="num">03</span>N-grams as features</h2>
+  <p>An <strong>n-gram</strong> is a sequence of <em>n</em> consecutive tokens. Using n-grams as features brings back a little word order: "not good" becomes its own column.</p>
+  <figure>
+    <img src="static/images/unit2/ngrams_skipgrams.svg" alt="The sentence food was not very good broken into unigrams, bigrams, trigrams, and a skip-bigram connecting not and good" loading="lazy">
+    <figcaption>Unigrams, bigrams and trigrams for one sentence. The skip-bigram is covered in the next section.</figcaption>
+  </figure>
+  <p>The price is <strong>feature explosion</strong>. Here is what happens to our 120 tickets:</p>
+<pre><code>import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+
+df = pd.read_csv("support_tickets.csv")
+for name, vec in {
+    "words (1)":        CountVectorizer(ngram_range=(1, 1)),
+    "words (1-2)":      CountVectorizer(ngram_range=(1, 2)),
+    "words (1-3)":      CountVectorizer(ngram_range=(1, 3)),
+    "chars (2-4)":      CountVectorizer(analyzer="char_wb", ngram_range=(2, 4)),
+}.items():
+    X = vec.fit_transform(df["text"])
+    print(f"{name:&lt;12} features={X.shape[1]:&gt;5}   non-zero={X.nnz / (X.shape[0]*X.shape[1]):.1%}")</code></pre>
+<pre class="output">words (1)    features=  329   non-zero=1.5%
+words (1-2)  features=  796   non-zero=1.2%
+words (1-3)  features= 1170   non-zero=1.1%
+chars (2-4)  features= 2420   non-zero=2.9%</pre>
+  <figure>
+    <img src="static/images/unit2/feature_counts.png" alt="Bar chart of feature counts for the same 120 tickets: 329 for unigrams, 796 for 1 to 2 grams, 1,170 for 1 to 3 grams and 2,420 for character 2 to 4 grams" loading="lazy">
+    <figcaption>Adding bigrams more than doubles the feature count. On millions of documents this reaches millions of columns, which is why teams cap it with <code>min_df</code> and <code>max_features</code>.</figcaption>
+  </figure>
+
+  <h3>Character n-grams: the typo and Hinglish fix</h3>
+  <p>Instead of word sequences, <strong>character n-grams</strong> split each word into overlapping pieces: "delivery" → "de", "el", "li", "iv"… Misspelled words still share most of their pieces:</p>
+<pre><code>from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+words = ["delivery", "delivry", "dilevery", "refund"]
+for name, vec in {"word-level": CountVectorizer(),
+                  "char 2-3":   CountVectorizer(analyzer="char_wb", ngram_range=(2, 3))}.items():
+    X = vec.fit_transform(words)
+    sims = [float(v) for v in cosine_similarity(X[0], X).round(2)[0]]
+    print(f"{name:&lt;10}", dict(zip(words, sims)))</code></pre>
+<pre class="output">word-level {'delivery': 1.0, 'delivry': 0.0, 'dilevery': 0.0, 'refund': 0.0}
+char 2-3   {'delivery': 1.0, 'delivry': 0.75, 'dilevery': 0.47, 'refund': 0.0}</pre>
+  <p>At word level, "delivry" is a completely different word. With character n-grams it is 75% similar to "delivery", while "refund" stays at 0.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Character n-grams are used for <strong>language identification</strong> (a classic technique since the 1990s), for <strong>spam that hides words</strong> ("fr33 m0ney", "v.i.a.g.r.a"), for product search that must survive typos, and for code-mixed text like Hinglish where spellings are not standardised ("bahut", "bohot", "bahot").</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="skipgrams">
+  <h2><span class="num">04</span>Skip-grams</h2>
+  <p>A <strong>skip-gram</strong> is an n-gram that is allowed to skip over words. A "2-skip-bigram" pairs each word with any of the next three words. This catches relationships that ordinary bigrams miss when a word sits in between.</p>
+<pre><code>from nltk.util import ngrams, skipgrams
+
+tokens = "food was not very good".split()
+print("bigrams     :", list(ngrams(tokens, 2)))
+print("2-skip-bigrams:", list(skipgrams(tokens, 2, 2)))</code></pre>
+<pre class="output">bigrams     : [('food', 'was'), ('was', 'not'), ('not', 'very'), ('very', 'good')]
+2-skip-bigrams: [('food', 'was'), ('food', 'not'), ('food', 'very'), ('was', 'not'), ('was', 'very'), ('was', 'good'), ('not', 'very'), ('not', 'good'), ('very', 'good')]</pre>
+  <p>Plain bigrams never produce <code>('not', 'good')</code> here because "very" is in the way. The skip-bigram does. The cost: 9 features instead of 4, and many pairs are noise (<code>('was', 'very')</code>).</p>
+  <div class="callout industry">
+    <span class="label">Industry lens: the bridge to word2vec</span>
+    <p>Skip-grams matter less today as hand-made features, but the idea became hugely important: <strong>word2vec's skip-gram model</strong> (Unit 3) is trained on exactly these (word, nearby word) pairs, and that is how it learns that "biryani" and "pulao" mean similar things. Keep this picture in mind for the next unit.</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="tfidf">
+  <h2><span class="num">05</span>TF-IDF: weighting words by importance</h2>
+  <p>Raw counts treat every word equally, so common words like "order" or "was" dominate. <strong>TF-IDF</strong> fixes this: a word gets a high score if it is frequent <em>in this document</em> but rare <em>across all documents</em>.</p>
+  <figure>
+    <img src="static/images/unit2/tfidf_formula.svg" alt="TF times IDF equals TF-IDF, with the scikit-learn IDF formula and real IDF values from the ticket dataset: order 2.62, refund 3.23, otp 4.70, hair 5.10" loading="lazy">
+    <figcaption>The IDF values at the bottom are computed from our 120 tickets.</figcaption>
+  </figure>
+<pre><code>import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+df = pd.read_csv("support_tickets.csv")
+tfidf = TfidfVectorizer()
+X = tfidf.fit_transform(df["text"])
+
+idf = pd.Series(tfidf.idf_, index=tfidf.get_feature_names_out())
+for w in ["not", "order", "refund", "rider", "otp", "hair"]:
+    print(f"{w:&lt;7} appears in {int((X[:, tfidf.vocabulary_[w]] &gt; 0).sum()):&gt;2} tickets   idf = {idf[w]:.2f}")</code></pre>
+<pre class="output">not     appears in 22 tickets   idf = 2.66
+order   appears in 23 tickets   idf = 2.62
+refund  appears in 12 tickets   idf = 3.23
+rider   appears in  5 tickets   idf = 4.00
+otp     appears in  2 tickets   idf = 4.70
+hair    appears in  1 tickets   idf = 5.10</pre>
+  <p>"hair" appears once, so when it does appear it is a very strong signal (a food-safety complaint). "order" appears everywhere, so it tells us little.</p>
+
+  <h3>Keyword extraction: what is each team hearing about?</h3>
+  <p>Treat all tickets of one queue as a single document, and TF-IDF gives the words that are <em>characteristic</em> of that queue:</p>
+<pre><code>import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+df = pd.read_csv("support_tickets.csv")
+# one "document" per category: which words are most characteristic of each team's tickets?
+docs = df.groupby("label")["text"].apply(" ".join)
+tfidf = TfidfVectorizer(stop_words="english")
+X = tfidf.fit_transform(docs)
+words = tfidf.get_feature_names_out()
+
+for label, row in zip(docs.index, X.toarray()):
+    top = row.argsort()[::-1][:6]
+    print(f"{label:&lt;15}", ", ".join(words[top]))</code></pre>
+<pre class="output">account_app     app, account, unable, raha, working, otp
+delivery_delay  delivery, order, late, rider, time, min
+food_quality    food, cold, stale, like, veg, curry
+refund_payment  refund, charged, payment, money, order, days</pre>
+  <p>Notice "raha" (Hindi, as in "chal raha hai") shows up for app issues. TF-IDF does not care about language; it only counts.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens: TF-IDF runs the search box</span>
+    <ul>
+      <li><strong>Search engines:</strong> Elasticsearch, OpenSearch and Solr rank results with <strong>BM25</strong>, an improved TF-IDF that also accounts for document length and stops rewarding a word after a few repeats.</li>
+      <li><strong>RAG chatbots:</strong> modern "hybrid search" combines BM25 keyword matching with embedding search, because keywords still win on exact matches like order IDs, product codes and error messages.</li>
+      <li><strong>Auto-tagging:</strong> the top TF-IDF terms of an article or product description become its tags.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- indexing -->
+<section id="indexing">
+  <h2><span class="num">06</span>Indexing: how search engines make TF-IDF fast</h2>
+  <p>TF-IDF tells us <em>how to score</em> a document for a query. But a real search box has millions of documents and must answer in milliseconds. Scoring every document for every query is far too slow. The solution, used by every search engine, is an <strong>index</strong>.</p>
+
+  <h3>Why we need an index</h3>
+  <p>Think of the index at the back of a textbook. To find "backpropagation" you do not read all 600 pages; you look up the word and jump to pages 212 and 348. A search engine does the same thing for every word in every document. Here is the difference on 1 million tickets:</p>
+<pre><code>import time, random
+from collections import defaultdict
+import pandas as pd
+
+base = pd.read_csv("support_tickets.csv")["text"].tolist()
+docs = [random.Random(i).choice(base) + f" ticket{i}" for i in range(1_000_000)]   # 1 million tickets
+
+t = time.perf_counter()
+hits = [i for i, d in enumerate(docs) if "hair" in d.split()]       # no index: read every document
+scan_ms = (time.perf_counter() - t) * 1000
+
+index = defaultdict(list)                                           # built once, offline
+for i, d in enumerate(docs):
+    for term in set(d.split()):
+        index[term].append(i)
+
+t = time.perf_counter()
+hits2 = index["hair"]                                               # with index: one lookup
+index_ms = (time.perf_counter() - t) * 1000
+
+print(f"{len(hits):,} matches | full scan: {scan_ms:,.0f} ms | inverted index: {index_ms:.3f} ms")</code></pre>
+<pre class="output">8,280 matches | full scan: 234 ms | inverted index: 0.002 ms</pre>
+  <p>A quarter of a second per query sounds fine until you have 1,000 users searching at once, or 1 billion documents instead of 1 million. With the index, the lookup cost barely grows with the number of documents. The one-time cost moves to <strong>index time</strong>, when documents are added.</p>
+
+  <h3>The inverted index</h3>
+  <p>It is called "inverted" because instead of storing <em>document → words</em>, it stores <em>word → documents</em>. Each list of documents is called a <strong>postings list</strong>, and it also stores how often the word appears (the TF in TF-IDF).</p>
+  <figure>
+    <img src="static/images/unit2/inverted_index.svg" alt="Documents pass through an analyzer (tokenize, lowercase, drop stop words, stem) into an inverted index mapping each term to the documents containing it; at query time the term is looked up, candidates are retrieved and ranked with BM25" loading="lazy">
+    <figcaption>Index time vs query time. The analyzer is the same pre-processing pipeline you met in Unit 1.</figcaption>
+  </figure>
+
+  <h3>Build a mini search engine: inverted index + BM25</h3>
+  <p>This is, in miniature, what Elasticsearch does. BM25 is TF-IDF with two practical fixes: a word repeated 10 times is not 10 times more relevant (<code>k1</code> caps it), and long documents should not win just because they contain more words (<code>b</code> normalises for length).</p>
+<pre><code>import math, re
+from collections import defaultdict, Counter
+import pandas as pd
+
+docs = pd.read_csv("support_tickets.csv")["text"].tolist()
+
+def analyze(text):                      # the "analyzer": tokenize + lowercase (+ stemming in real engines)
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+# Build the inverted index: term -&gt; {doc_id: term frequency}
+index = defaultdict(dict)
+doc_len = []
+for doc_id, text in enumerate(docs):
+    tokens = analyze(text)
+    doc_len.append(len(tokens))
+    for term, tf in Counter(tokens).items():
+        index[term][doc_id] = tf
+
+print("terms in index:", len(index))
+print("postings for 'refund':", index["refund"])
+
+# BM25 scoring (k1 and b are the usual defaults, also used by Elasticsearch)
+N, avgdl, k1, b = len(docs), sum(doc_len) / len(docs), 1.2, 0.75
+def bm25_search(query, top_k=3):
+    scores = defaultdict(float)
+    for term in analyze(query):
+        postings = index.get(term, {})              # only look at documents containing the term
+        idf = math.log(1 + (N - len(postings) + 0.5) / (len(postings) + 0.5))
+        for doc_id, tf in postings.items():
+            scores[doc_id] += idf * tf * (k1 + 1) / (tf + k1 * (1 - b + b * doc_len[doc_id] / avgdl))
+    return sorted(scores.items(), key=lambda x: -x[1])[:top_k]
+
+for doc_id, score in bm25_search("refund not received"):
+    print(f"{score:5.2f}  {docs[doc_id]}")</code></pre>
+<pre class="output">terms in index: 333
+postings for 'refund': {4: 1, 9: 1, 10: 1, 15: 1, 18: 1, 22: 1, 36: 1, 71: 1, 81: 1, 83: 1, 93: 1, 114: 1}
+ 7.96  refund to source not received
+ 7.37  refund not received yet for order
+ 4.02  bank says refund not initiated</pre>
+  <p>Only the 12 tickets in the "refund" postings list (plus those containing "not" or "received") are scored; the other 100+ are never touched.</p>
+
+  <h3>Apache Lucene, Solr, Elasticsearch and OpenSearch</h3>
+  <p>Nobody builds a production search engine from scratch. The industry runs on one open-source library and the servers built on top of it:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Tool</th><th>What it is</th><th>Typically used for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Apache Lucene</strong></td><td>The Java library that implements the inverted index, analyzers and BM25 scoring. Started by Doug Cutting in 1999.</td><td>The engine inside all three tools below</td></tr>
+      <tr><td><strong>Apache Solr</strong></td><td>A search server built on Lucene, with configuration files, faceting and a mature plugin ecosystem.</td><td>Enterprise search, e-commerce catalogues, digital libraries</td></tr>
+      <tr><td><strong>Elasticsearch</strong></td><td>A distributed search and analytics engine on Lucene, driven by a JSON/REST API. Created in 2010, now developed by Elastic.</td><td>Product and site search, log analytics (the "ELK" stack), observability</td></tr>
+      <tr><td><strong>OpenSearch</strong></td><td>A community fork of Elasticsearch started by AWS in 2021, under the Apache 2.0 licence.</td><td>Same use cases; the default choice on AWS</td></tr>
+    </tbody>
+  </table></div>
+  <p>This is what our ticket search looks like in Elasticsearch. You define <em>how</em> text is analyzed, add documents, and query; the index and BM25 are handled for you:</p>
+<pre><code># 1) Create an index; the "english" analyzer tokenizes, lowercases, removes stop words and stems
+PUT /tickets
+{
+  "mappings": {
+    "properties": {
+      "text":  { "type": "text", "analyzer": "english" },
+      "label": { "type": "keyword" }
+    }
+  }
+}
+
+# 2) Add a document
+POST /tickets/_doc
+{ "text": "refund not received yet for order", "label": "refund_payment" }
+
+# 3) Search: ranked by BM25 by default
+GET /tickets/_search
+{
+  "query": { "match": { "text": "refunds not received" } }
+}</code></pre>
+  <p class="video-link">Request syntax as used in Kibana Dev Tools. Note that the query says "refunds" and the document says "refund": the <code>english</code> analyzer stems both to the same term, so it still matches.</p>
+
+  <div class="callout industry">
+    <span class="label">Industry lens: where indexing shows up</span>
+    <ul>
+      <li><strong>Product search</strong> on e-commerce and food apps, with filters (veg only, rating 4+) and facets (cuisine counts).</li>
+      <li><strong>Autocomplete</strong>, using special indexes of word prefixes ("bir" → "biryani").</li>
+      <li><strong>Log search</strong>: engineers search billions of log lines for an error message in seconds.</li>
+      <li><strong>Support knowledge bases</strong> and help-centre search.</li>
+      <li><strong>RAG chatbots</strong>: BM25 retrieval over company documents, usually combined with vector search.</li>
+    </ul>
+  </div>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotchas</span>
+    <ul>
+      <li><strong>Analyzer mismatch:</strong> if documents are stemmed at index time but queries are not (or vice versa), "refunds" never finds "refund". Index and query must use compatible analyzers.</li>
+      <li><strong>Changing the analyzer means reindexing</strong> every document. On a billion documents, that is a planned migration, not a config tweak.</li>
+      <li><strong>Words, not meaning:</strong> a search for "money back" will never find "refund not received" unless someone adds a synonym list. That limitation leads directly to <strong>vector indexes</strong> for embeddings (FAISS, HNSW, and the vector search built into Elasticsearch and OpenSearch), covered in Unit 3.</li>
+      <li><strong>Hinglish:</strong> built-in analyzers exist for English and Hindi, but code-mixed Roman-script Hindi needs custom analyzers and synonym lists.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="case-study">
+  <h2><span class="num">07</span>Case study: a support-ticket router in 15 lines</h2>
+  <p>Let's build the thing a real team would build first: a classifier that reads a ticket and picks the queue.</p>
+<pre><code>import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+
+df = pd.read_csv("support_tickets.csv")
+X_train, X_test, y_train, y_test = train_test_split(
+    df["text"], df["label"], test_size=0.25, stratify=df["label"], random_state=42)
+
+model = make_pipeline(
+    TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True),
+    LogisticRegression(max_iter=1000),
+)
+model.fit(X_train, y_train)          # the vectorizer learns its vocabulary from TRAIN only
+print(classification_report(y_test, model.predict(X_test), digits=2))
+
+new = ["paisa wapas kab milega", "rider is not answering", "the gulab jamun was stale",
+       "otp not received", "my order is late and I want a refund"]
+for text, label, p in zip(new, model.predict(new), model.predict_proba(new).max(axis=1)):
+    print(f"{text:&lt;40} -&gt; {label:&lt;15} ({p:.2f})")</code></pre>
+<pre class="output">                precision    recall  f1-score   support
+
+   account_app       1.00      0.62      0.77         8
+delivery_delay       0.64      1.00      0.78         7
+  food_quality       1.00      0.88      0.93         8
+refund_payment       0.71      0.71      0.71         7
+
+      accuracy                           0.80        30
+     macro avg       0.84      0.80      0.80        30
+  weighted avg       0.85      0.80      0.80        30
+
+paisa wapas kab milega                   -&gt; account_app     (0.25)
+rider is not answering                   -&gt; delivery_delay  (0.47)
+the gulab jamun was stale                -&gt; food_quality    (0.55)
+otp not received                         -&gt; account_app     (0.31)
+my order is late and I want a refund     -&gt; delivery_delay  (0.39)</pre>
+  <h4>Reading the results like an engineer</h4>
+  <ul>
+    <li><strong>80% accuracy from 90 training tickets</strong> in under a second of training. That is the baseline any fancier model must beat.</li>
+    <li><strong>"paisa wapas kab milega"</strong> ("when will I get my money back") went to the wrong queue. None of its words appear in the training data, so the model is guessing, and its confidence (0.25, about the same as a random pick among 4 queues) says so.</li>
+    <li><strong>Use the confidence.</strong> In production, predictions below a threshold (say 0.5) go to a human or a general queue instead of being auto-routed.</li>
+    <li><strong>"late and I want a refund"</strong> is really two problems. Real ticket routers are often <em>multi-label</em>.</li>
+  </ul>
+
+  <h3>Explainability: why did it decide that?</h3>
+  <p>A linear model over TF-IDF features is fully transparent. We can list the words that push a ticket into each queue:</p>
+<pre><code># continuing from the block above
+vec, clf = model.named_steps["tfidfvectorizer"], model.named_steps["logisticregression"]
+names = vec.get_feature_names_out()
+for label, coefs in zip(clf.classes_, clf.coef_):
+    print(f"{label:&lt;15}", ", ".join(names[coefs.argsort()[::-1][:6]]))</code></pre>
+<pre class="output">account_app     app, cannot, account, unable, unable to, otp
+delivery_delay  delivery, rider, is, order, late, waiting
+food_quality    was, were, food, and, burnt, stale
+refund_payment  refund, charged, payment, money, for, fee</pre>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha: the model learned a shortcut</span>
+    <p>Look at <code>food_quality</code>: its strongest signals are <strong>"was"</strong> and <strong>"were"</strong>. Food complaints in our data are written in the past tense ("food was cold"), while delivery complaints are in the present ("rider is not moving"). The model learned grammar, not food. We checked: the model sends <em>"the delivery was late"</em> to <code>food_quality</code> (0.36) instead of <code>delivery_delay</code> (0.33). This kind of <strong>spurious correlation</strong> is extremely common, and only explainability plus error analysis catches it.</p>
+  </div>
+
+  <h3>Which features and which model?</h3>
+  <p>Five-fold cross-validation on all 120 tickets, plus the time to classify one ticket on a laptop CPU:</p>
+<pre class="output">BoW + Naive Bayes      accuracy=0.73  latency=0.20 ms/ticket
+TF-IDF + LogReg        accuracy=0.73  latency=0.34 ms/ticket
+char TF-IDF + LogReg   accuracy=0.81  latency=0.43 ms/ticket</pre>
+  <p>Character n-grams win on this messy, Hinglish, typo-filled data. All three answer in well under a millisecond, so one ordinary server can classify thousands of tickets per second, with no GPU.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>With only 120 examples these numbers are noisy; real projects use thousands of tickets. But the pattern holds in industry: a TF-IDF baseline is often within a few points of a much larger model, at a tiny fraction of the cost. Teams ship it first, collect data and user feedback, and only then decide whether BERT or an LLM is worth the extra cost.</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="lm">
+  <h2><span class="num">08</span>Probabilistic language modelling</h2>
+  <p>So far we turned text into features for a classifier. A <strong>language model (LM)</strong> does something different: it assigns a probability to text. It answers two equivalent questions:</p>
+  <ul>
+    <li>How likely is this sentence? <code>P("chicken biryani near me")</code></li>
+    <li>What word comes next? <code>P(next word | "chicken biryani near")</code></li>
+  </ul>
+  <p>They are connected by the <strong>chain rule</strong> of probability:</p>
+<pre class="output">P(chicken biryani near me) = P(chicken) × P(biryani | chicken) × P(near | chicken biryani) × P(me | chicken biryani near)</pre>
+  <div class="grid">
+    <div class="card" style="--col:var(--c3)"><h4>Autocomplete</h4><p class="eg">Search boxes and keyboards suggest the most probable next words.</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Speech recognition</h4><p class="eg">"recognise speech" vs "wreck a nice beach": the LM picks the likelier sentence.</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Spelling &amp; OCR correction</h4><p class="eg">"I ate paneer tikka" is more probable than "I ate paneer tika".</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>ChatGPT, Claude, Gemini</h4><p class="eg">At their core, very large language models that predict the next token.</p></div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="markov">
+  <h2><span class="num">09</span>N-grams and Markov models: estimating the probability of a word</h2>
+  <p>Conditioning on the whole history is impossible: most long histories never appear in any dataset. The <strong>Markov assumption</strong> simplifies it: the next word depends only on the last <em>n − 1</em> words.</p>
+<pre class="output">Bigram (n=2):   P(me | chicken biryani near)  ≈  P(me | near)
+Trigram (n=3):  P(me | chicken biryani near)  ≈  P(me | biryani near)</pre>
+  <p>Now the probability of a word can be <strong>estimated by counting</strong> (maximum likelihood estimation):</p>
+<pre class="output">P(biryani | chicken) = count("chicken biryani") / count("chicken")</pre>
+  <p>Let's build the autocomplete for our food app's search box from 15 search queries:</p>
+<pre><code>from collections import Counter
+
+queries = """chicken biryani near me
+chicken biryani family pack
+veg biryani near me
+paneer butter masala
+butter chicken near me
+chicken biryani
+paneer tikka
+chicken tikka
+veg thali near me
+butter naan
+chicken biryani combo
+paneer biryani
+masala dosa near me
+chicken fried rice
+veg fried rice""".splitlines()
+
+bigrams, unigrams = Counter(), Counter()
+for q in queries:
+    tokens = ["&lt;s&gt;"] + q.split() + ["&lt;/s&gt;"]       # sentence start / end markers
+    unigrams.update(tokens[:-1])
+    bigrams.update(zip(tokens, tokens[1:]))
+
+def p_mle(word, prev):
+    return bigrams[(prev, word)] / unigrams[prev]
+
+print("count(chicken)            =", unigrams["chicken"])
+print("count(chicken biryani)    =", bigrams[("chicken", "biryani")])
+print("P(biryani | chicken)      =", round(p_mle("biryani", "chicken"), 2))
+print("P(tikka   | chicken)      =", round(p_mle("tikka", "chicken"), 2))
+print("P(pizza   | chicken)      =", round(p_mle("pizza", "chicken"), 2))
+
+# autocomplete: most likely next words after "chicken"
+nxt = {w: c for (p, w), c in bigrams.items() if p == "chicken"}
+print("after 'chicken':", sorted(nxt.items(), key=lambda x: -x[1]))</code></pre>
+<pre class="output">count(chicken)            = 7
+count(chicken biryani)    = 4
+P(biryani | chicken)      = 0.57
+P(tikka   | chicken)      = 0.14
+P(pizza   | chicken)      = 0.0
+after 'chicken': [('biryani', 4), ('near', 1), ('tikka', 1), ('fried', 1)]</pre>
+  <p>Type "chicken" and the app suggests "biryani" first. That is a working autocomplete. Drawn as a graph, the bigram model is a <strong>Markov chain</strong>: words are states and arrows carry transition probabilities.</p>
+  <figure>
+    <img src="static/images/unit2/markov_chain.svg" alt="Markov chain of words from search queries: start goes to chicken with probability 0.40, chicken goes to biryani with 0.57, biryani goes to near or end with 0.33 each, near goes to me with 1.00" loading="lazy">
+    <figcaption>The bigram model as a Markov chain. All probabilities are counted from the 15 queries above.</figcaption>
+  </figure>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>Search autocomplete at scale works on the same principle, counting n-grams over <em>millions</em> of logged queries (plus personalisation and trending boosts). In 2006 Google released a dataset of n-gram counts from about a trillion words of web text, and the Google Books Ngram Viewer lets anyone explore word frequencies over centuries. Before neural networks, speech recognition systems relied on large n-gram LMs built with toolkits like KenLM.</p>
+  </div>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha</span>
+    <p><code>P(pizza | chicken) = 0.0</code>. The model has never seen "chicken pizza", so it declares it <strong>impossible</strong>. Any query containing an unseen pair gets probability zero overall, and the autocomplete breaks for new dishes. The fix is the next section.</p>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="smoothing">
+  <h2><span class="num">10</span>Smoothing: never say never</h2>
+  <p><strong>Smoothing</strong> takes a little probability away from things we have seen and gives it to things we have not. The simplest version is <strong>Laplace (add-one) smoothing</strong>: pretend every possible bigram was seen one extra time.</p>
+<pre class="output">P_laplace(word | prev) = (count(prev word) + 1) / (count(prev) + V)        V = vocabulary size</pre>
+<pre><code># continuing from the block above
+import math
+
+V = len(set(w for q in queries for w in q.split()) | {"&lt;/s&gt;"})
+
+def p_laplace(word, prev, k=1):
+    return (bigrams[(prev, word)] + k) / (unigrams[prev] + k * V)
+
+def sentence_prob(q, p):
+    tokens = ["&lt;s&gt;"] + q.split() + ["&lt;/s&gt;"]
+    return math.prod(p(w, prev) for prev, w in zip(tokens, tokens[1:]))
+
+print("vocabulary size V =", V)
+for q in ["chicken biryani near me", "paneer fried rice"]:
+    print(f"{q:&lt;24} MLE={sentence_prob(q, p_mle):.4f}   Laplace={sentence_prob(q, p_laplace):.6f}")
+print("P(biryani | chicken): MLE =", round(p_mle("biryani","chicken"),3), " Laplace =", round(p_laplace("biryani","chicken"),3))
+print("P(pizza   | chicken): MLE =", round(p_mle("pizza","chicken"),3), "  Laplace =", round(p_laplace("pizza","chicken"),3))</code></pre>
+<pre class="output">vocabulary size V = 18
+chicken biryani near me  MLE=0.0762   Laplace=0.000361
+paneer fried rice        MLE=0.0000   Laplace=0.000130
+P(biryani | chicken): MLE = 0.571  Laplace = 0.2
+P(pizza   | chicken): MLE = 0.0   Laplace = 0.04</pre>
+  <ul>
+    <li><strong>The good:</strong> "paneer fried rice", a perfectly sensible new query, is no longer impossible.</li>
+    <li><strong>The bad:</strong> P(biryani | chicken) dropped from 0.57 to 0.2. With a tiny corpus, add-one steals far too much from what we actually observed.</li>
+  </ul>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Technique</th><th>Idea</th><th>Where you see it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Add-one (Laplace)</strong></td><td>Add 1 to every count</td><td>Teaching, and inside Naive Bayes (next section)</td></tr>
+      <tr><td><strong>Add-k</strong></td><td>Add a small k (e.g. 0.01) instead of 1</td><td>Quick fix for Laplace over-smoothing</td></tr>
+      <tr><td><strong>Backoff / interpolation</strong></td><td>If the trigram is unseen, fall back to the bigram, then the unigram</td><td>Autocomplete, keyboards</td></tr>
+      <tr><td><strong>Kneser-Ney</strong></td><td>Smarter backoff: rewards words that appear after many different words</td><td>Production n-gram LMs (e.g. KenLM) for speech and translation</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>The zero-probability problem is not only about language models. Any system that counts events (fraud signals, product co-purchases, click-through rates for new items) faces the same "never seen it, so it's impossible" trap, and uses the same smoothing ideas.</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="naive-bayes">
+  <h2><span class="num">11</span>Naive Bayes and its applications</h2>
+  <p><strong>Naive Bayes</strong> classifies text using Bayes' theorem. For each class it asks: <em>how likely is this class, and how likely would it be to produce these words?</em></p>
+<pre class="output">P(class | words)  ∝  P(class) × P(word₁ | class) × P(word₂ | class) × …</pre>
+  <p>It is "naive" because it assumes every word is independent of the others once you know the class. That is clearly false ("chicken" and "biryani" love to appear together), but it works surprisingly well in practice.</p>
+  <figure>
+    <img src="static/images/unit2/naive_bayes.svg" alt="Naive Bayes worked example: the message win free order gets a spam score of 0.000450 and a ham score of 0.0000035, giving 99.2 percent spam" loading="lazy">
+    <figcaption>A worked spam example. The word probabilities are illustrative; a real filter learns them by counting words in labelled messages.</figcaption>
+  </figure>
+  <p>Two practical details every implementation handles:</p>
+  <ul>
+    <li><strong>Smoothing:</strong> a word never seen in spam would make P(word | spam) = 0 and wipe out the whole product. Naive Bayes uses the add-one smoothing from the previous section (<code>alpha=1.0</code> in scikit-learn's <code>MultinomialNB</code>).</li>
+    <li><strong>Log probabilities:</strong> multiplying hundreds of small numbers underflows to 0 on a computer, so implementations add logarithms instead.</li>
+  </ul>
+<pre><code>from sklearn.pipeline import make_pipeline
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
+nb = make_pipeline(CountVectorizer(ngram_range=(1, 2)), MultinomialNB(alpha=1.0))
+nb.fit(df["text"], df["label"])
+print(nb.predict(["refund nahi mila", "khana thanda tha"]))</code></pre>
+<pre class="output">['refund_payment' 'delivery_delay']</pre>
+  <p>The first is right. The second ("the food was cold") is arguable: in our data, cold food mostly appears in late-delivery complaints ("late tha, khana thanda ho gaya"), so the model blames delivery. Labelling guidelines matter as much as the model.</p>
+  <h3>Where Naive Bayes is used</h3>
+  <div class="grid">
+    <div class="card" style="--col:var(--c6)"><h4>Spam filtering</h4><p class="eg">Paul Graham's "A Plan for Spam" (2002) popularised Bayesian filters; SpamAssassin still ships one.</p></div>
+    <div class="card" style="--col:var(--c3)"><h4>Ticket &amp; email triage</h4><p class="eg">Fast first-pass routing that can be retrained every night on new tickets.</p></div>
+    <div class="card" style="--col:var(--c4)"><h4>Sentiment baselines</h4><p class="eg">A strong, cheap baseline for short reviews and social posts.</p></div>
+    <div class="card" style="--col:var(--c5)"><h4>Language detection</h4><p class="eg">Character n-grams + Naive Bayes identify the language of short texts.</p></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Why teams pick Naive Bayes</th><th>Why they move on</th></tr></thead>
+    <tbody>
+      <tr><td class="good">Trains in milliseconds, even on millions of documents</td><td class="bad">Independence assumption hurts on nuanced text</td></tr>
+      <tr><td class="good">Works with very little labelled data</td><td class="bad">Probabilities are over-confident (0.999…) and poorly calibrated</td></tr>
+      <tr><td class="good">Can be updated incrementally as new data arrives</td><td class="bad">Usually beaten by logistic regression once data grows</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha</span>
+    <p>Do not use Naive Bayes probabilities directly as confidence scores for automation thresholds. Because it multiplies many "independent" pieces of evidence, it routinely outputs 0.99+ even when it is wrong. Calibrate first, or use a model with better-behaved probabilities.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="generative">
+  <h2><span class="num">12</span>Generative models of language</h2>
+  <p>A language model can do more than score text: it can <strong>generate</strong> it. Start at <code>&lt;s&gt;</code>, pick the next word at random according to the model's probabilities, repeat until <code>&lt;/s&gt;</code>. Here is our bigram model generating search queries:</p>
+<pre><code># continuing from the language model above
+import random
+
+def generate(seed=None, max_len=6):
+    rng = random.Random(seed)
+    word, out = "&lt;s&gt;", []
+    while len(out) &lt; max_len:
+        options = [(w, c) for (p, w), c in bigrams.items() if p == word]
+        word = rng.choices([w for w, _ in options], weights=[c for _, c in options])[0]
+        if word == "&lt;/s&gt;":
+            break
+        out.append(word)
+    return " ".join(out)
+
+for s in [24, 27, 6, 26, 37]:
+    print(generate(seed=s))</code></pre>
+<pre class="output">paneer biryani near me
+paneer biryani combo
+paneer biryani family pack
+paneer butter masala dosa near me
+paneer butter chicken tikka</pre>
+  <p>None of these five queries were in the training data. The first three are sensible new queries. The last two show the weakness: a bigram model only looks one word back, so "paneer butter" flows into "masala dosa" or "chicken tikka" with no sense of the whole phrase.</p>
+  <div class="callout industry">
+    <span class="label">Industry lens: from here to GPT</span>
+    <p>This loop (predict a probability for every next word, pick one, append it, repeat) is <strong>exactly how ChatGPT, Claude and Gemini generate text</strong>. The difference is the model inside: instead of counting pairs of words, they use a neural network that looks back over thousands of tokens. The "temperature" setting you see in LLM APIs controls how adventurous the random pick is: low temperature almost always takes the top word, high temperature explores.</p>
+  </div>
+
+  <h3>Generative vs discriminative models</h3>
+  <figure>
+    <img src="static/images/unit2/generative_vs_discriminative.svg" alt="Comparison: generative models such as Naive Bayes, n-gram LMs, HMMs and GPT learn how each class generates text and can produce new text; discriminative models such as logistic regression, SVM and BERT classifiers learn the boundary between classes" loading="lazy">
+    <figcaption>Naive Bayes and n-gram LMs are generative; the logistic regression in our case study is discriminative.</figcaption>
+  </figure>
+  <p><strong>Hidden Markov Models (HMMs)</strong> extend Markov chains with hidden states, for example the hidden POS tag behind each visible word. For decades they powered POS tagging, named-entity recognition and speech recognition, until neural networks replaced them in the 2010s.</p>
+</section>
+
+<!-- 12 -->
+<section id="production">
+  <h2><span class="num">13</span>Feature extraction in production</h2>
+  <p>The code above fits in a notebook. Running it reliably for millions of users needs a few more habits.</p>
+  <div class="callout gotcha">
+    <span class="label">Real-world gotcha: data leakage</span>
+    <p>Never call <code>fit</code> on the vectorizer with your test data. If the vocabulary and IDF values are learned from all data, information from the test set leaks into training and your accuracy looks better than it will be in production. Put the vectorizer and model inside one <code>Pipeline</code> (as in the case study) so both are always fit on training data only.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Problem in production</th><th>What teams do</th></tr></thead>
+    <tbody>
+      <tr><td>The vectorizer and model get out of sync</td><td>Save them together as one pipeline object (e.g. with <code>joblib</code>) and version it with the model.</td></tr>
+      <tr><td>New words appear every day (new dishes, slang, brand names)</td><td>Retrain regularly; monitor the share of unknown words; use character n-grams for robustness.</td></tr>
+      <tr><td>Vocabulary grows to millions of features</td><td>Cap it with <code>min_df</code>, <code>max_df</code> and <code>max_features</code>, or use <code>HashingVectorizer</code>, which needs no stored vocabulary.</td></tr>
+      <tr><td>Stream of data, no time to refit</td><td><code>HashingVectorizer</code> + a model that supports <code>partial_fit</code> (e.g. <code>SGDClassifier</code>, <code>MultinomialNB</code>).</td></tr>
+      <tr><td>Stakeholders ask "why was this ticket routed there?"</td><td>Show the top-weighted words, as in the explainability example.</td></tr>
+    </tbody>
+  </table></div>
+<pre><code>from sklearn.feature_extraction.text import HashingVectorizer
+
+hv = HashingVectorizer(n_features=2**20, alternate_sign=False)   # no fit, no vocabulary to store
+X = hv.transform(["order late tha", "a brand new word never seen: zomatoesque"])
+print(X.shape, X.nnz)</code></pre>
+<pre class="output">(2, 1048576) 9</pre>
+
+  <h3>When to move beyond count-based features</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>BoW / TF-IDF</th><th>Word embeddings (Unit 3)</th><th>Transformers / LLMs (Unit 5)</th></tr></thead>
+    <tbody>
+      <tr><td>Understands synonyms ("refund" ≈ "money back")</td><td class="bad">No</td><td class="good">Yes</td><td class="good">Yes</td></tr>
+      <tr><td>Understands context ("not bad")</td><td>Only with n-grams</td><td>Partly</td><td class="good">Yes</td></tr>
+      <tr><td>Training data needed</td><td>Hundreds to thousands</td><td>Pre-trained + some labels</td><td>Few or none (prompting)</td></tr>
+      <tr><td>Cost per prediction</td><td class="good">~0.3 ms on a CPU</td><td class="good">~1 ms</td><td class="bad">10 ms – seconds, often a GPU or paid API</td></tr>
+      <tr><td>Explainability</td><td class="good">High</td><td>Medium</td><td class="bad">Low</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout industry">
+    <span class="label">Industry lens</span>
+    <p>"paisa wapas kab milega" failed because TF-IDF has no idea that "paisa wapas" means "refund". That single example is the whole motivation for <strong>Unit 3</strong>: representations where words with similar meanings get similar numbers.</p>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="practice">
+  <h2><span class="num">14</span>Try it yourself</h2>
+  <div class="callout demo">
+    <span class="label">Hands-on</span>
+    <p>In Google Colab, install the libraries and upload <a href="static/data/support_tickets.csv" download>support_tickets.csv</a>:</p>
+<pre><code>!pip install scikit-learn nltk pandas</code></pre>
+    <p>Then try these experiments with the case-study code:</p>
+    <ul>
+      <li>Swap <code>TfidfVectorizer(ngram_range=(1, 2))</code> for <code>analyzer="char_wb", ngram_range=(2, 4)</code>. Which test tickets improve? Does "the delivery was late" still go to food_quality?</li>
+      <li>"paisa wapas kab milega" fails with both feature types, because none of its words appear in training. Add 5 Hinglish refund tickets of your own (e.g. "paisa wapas karo") to the CSV and retrain. Is it routed correctly now, and with what confidence?</li>
+      <li>Add 20 more queries to the autocomplete corpus and generate new ones. Do they get more or less sensible?</li>
+    </ul>
+  </div>
+  <h3>Discussion questions</h3>
+  <details><summary>1. Your TF-IDF model sees "delivery was late" and predicts food_quality. Why might that happen?</summary>
+    <p>The shortcut we found: "was" is one of the strongest food_quality features because food complaints in the training data are in the past tense, and the tense outweighs the word "delivery". Fixes: more varied training data, removing or down-weighting such tokens, and regular error analysis on misrouted tickets.</p></details>
+  <details><summary>2. Why do search engines still use BM25 when embedding search exists?</summary>
+    <p>Keyword matching is exact, cheap, explainable and needs no training. It wins on order IDs, product codes, names and rare terms that embeddings blur together. That is why modern systems use hybrid search: BM25 and embeddings together.</p></details>
+  <details><summary>3. Your Elasticsearch index stems documents, but a developer changes the query to skip stemming. What breaks?</summary>
+    <p>Queries like "refunds" or "delivered" no longer match the stemmed terms "refund" and "deliv" stored in the index, so obvious results disappear. Index-time and query-time analyzers must stay compatible, and changing the index-time analyzer requires reindexing all documents.</p></details>
+  <details><summary>4. A bigram model gives probability zero to "chicken pizza near me". Why is that a business problem, and how do you fix it?</summary>
+    <p>New dishes and restaurants would never be suggested or would break sentence scoring. Smoothing (add-k, backoff, Kneser-Ney) gives unseen combinations a small non-zero probability.</p></details>
+  <details><summary>5. Naive Bayes says a ticket is 99.9% refund_payment, but it is actually about delivery. Should you trust that 99.9%?</summary>
+    <p>No. Naive Bayes multiplies evidence as if words were independent, which makes its probabilities over-confident. Calibrate the probabilities, or use them only for ranking, before building automation thresholds on them.</p></details>
+  <details><summary>6. How is ChatGPT related to the bigram generator on this page?</summary>
+    <p>Both are generative language models that repeatedly predict a probability distribution over the next token and sample from it. The bigram model looks back one word using counts; an LLM looks back over thousands of tokens using a neural network with billions of parameters.</p></details>
+</section>
+
+<!-- 14 -->
+<section id="takeaways">
+  <h2><span class="num">15</span>Key takeaways</h2>
+  <div class="takeaways">
+    <ul>
+      <li>Features decide what a model can learn. Bag of words cannot tell "not good" from "good"; n-grams can.</li>
+      <li>One-hot is everywhere for categories and labels, but useless for word meaning.</li>
+      <li>Character n-grams make models robust to typos and Hinglish, and often win on messy real data.</li>
+      <li>TF-IDF (and its descendant BM25) still powers search engines, keyword extraction and hybrid RAG search.</li>
+      <li>Search engines stay fast with an inverted index (word → documents). Apache Lucene powers Solr, Elasticsearch and OpenSearch, which rank with BM25 by default.</li>
+      <li>TF-IDF + logistic regression is the baseline to beat: fast, cheap and explainable. Check its top features for shortcuts.</li>
+      <li>Language models assign probabilities to text; n-grams + the Markov assumption estimate them by counting, and smoothing prevents "never seen = impossible".</li>
+      <li>Naive Bayes is simple, fast and still used in spam and triage, but its probabilities are over-confident.</li>
+      <li>Generating text by repeatedly sampling the next word is exactly how modern LLMs work, just with a far better model.</li>
+    </ul>
+  </div>
+
+  <nav class="pager" aria-label="Unit navigation">
+    <a class="prev" href="unit1_introduction_to_language.html"><small>Previous</small>← Unit 1 · Introduction to Language</a>
+    <a class="next" href="unit3_word_embeddings.html"><small>Next</small>Unit 3 · Word Embeddings →</a>
+  </nav>
+</section>
+
+<footer>NLP in Practice · Industry Expert Session · Symbiosis</footer>
+</main>
+</div>
+<script src="static/js/main.js"></script>
+</body>
+</html>
