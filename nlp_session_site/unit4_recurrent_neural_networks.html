@@ -14,10 +14,10 @@
 
 <nav class="toc" aria-label="On this page">
   <a class="home" href="index.html">← NLP in Practice</a>
-  <a class="toc-agenda" href="agenda.html">Session agenda</a>
   <ol>
+    <li><a href="#setup">Setup: install first</a></li>
     <li><a href="#why">Why order matters</a></li>
-    <li><a href="#rnn">How an RNN works</a></li>
+    <li><a href="#rnn">What is an RNN?</a></li>
     <li><a href="#rnn-lm">RNN language models</a></li>
     <li><a href="#vanishing">Vanishing gradients</a></li>
     <li><a href="#lstm">LSTM</a></li>
@@ -41,6 +41,14 @@
   <p class="sub">Models that read text in order and remember what came before: how they work, why they forget, how LSTMs and GRUs fixed it, and where they still run in production today.</p>
 </header>
 
+<div class="callout demo" id="setup">
+  <span class="label">Setup for this unit: run this first</span>
+  <p>Every code block on this page needs these libraries. In <strong>Google Colab</strong>, run this in the first cell:</p>
+<pre><code>!pip install torch pandas scikit-learn</code></pre>
+  <p>On your own computer, run the same commands in a terminal without the leading <code>!</code>. Google Colab already has PyTorch installed, so this is mainly for your own laptop. Data: <a href="static/data/dishes.txt" download>dishes.txt</a> and <a href="static/data/support_tickets.csv" download>support_tickets.csv</a>.</p>
+  
+</div>
+
 <!-- 0 -->
 <section id="why">
   <h2><span class="num">00</span>Why order matters</h2>
@@ -60,15 +68,39 @@
 
 <!-- 1 -->
 <section id="rnn">
-  <h2><span class="num">01</span>How an RNN works</h2>
+  <h2><span class="num">01</span>What is an RNN?</h2>
+  <div class="callout thread">
+    <span class="label">In one line</span>
+    <p>An RNN reads a sentence <strong>one word at a time</strong> and keeps a short <strong>running summary</strong> of everything it has read so far. That summary is called the <strong>hidden state</strong>, or simply the model's memory.</p>
+  </div>
+  <p>Think of how you read a WhatsApp message. You don't look at all the words at once. You read word by word, and after each word your understanding updates: "okay, it's about food… it was <em>not</em>… <em>good</em>, so this is a complaint." An RNN does exactly that.</p>
+  <h4>Watch the memory update, word by word</h4>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Step</th><th>Reads</th><th>Memory after this word (in plain English)</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>"food"</td><td>The topic is food.</td></tr>
+      <tr><td>2</td><td>"was"</td><td>Food… something is being described.</td></tr>
+      <tr><td>3</td><td>"not"</td><td>Food, and a negation is coming. Be careful!</td></tr>
+      <tr><td>4</td><td>"good"</td><td>Food + "not good" = a complaint. <strong>Negative.</strong></td></tr>
+    </tbody>
+  </table></div>
+  <p>In the real model, the "memory" is not English sentences but a list of numbers (for example 64 of them). The idea is the same: <strong>new memory = mix of (old memory + current word)</strong>, repeated for every word.</p>
   <figure>
     <img src="static/images/unit4/rnn_unrolled.svg" alt="An RNN cell with a loop, equal to the same cell unrolled over the words food, was, not, good, passing a hidden state from h1 to h4 and predicting Negative" loading="lazy">
     <figcaption>An RNN "unrolled" over time: one cell, reused at every word.</figcaption>
   </figure>
-  <p>At every step the RNN combines the current word with its memory of everything before it:</p>
-<pre class="output">hₜ = tanh( W_x · xₜ  +  W_h · hₜ₋₁  +  b )
-       new word     previous memory</pre>
-  <p>The same weights <code>W_x</code> and <code>W_h</code> are used at every step. That is why an RNN can read a 5-word or a 500-word ticket with the same number of parameters, unlike an n-gram model whose table grows with every extra word of context.</p>
+  <p>The diagram shows the same RNN twice. On the left, it is one box with a loop: its output feeds back into itself. On the right, the loop is "unrolled" so you can see it working through each word. <strong>It is the same box every time</strong>, passing its memory along like a baton in a relay race.</p>
+  <h4>Three things to remember</h4>
+  <ul>
+    <li><strong>One word at a time, in order.</strong> Unlike bag of words, word order now matters.</li>
+    <li><strong>Memory carries forward.</strong> By the last word, the memory is a summary of the whole sentence. That final memory is what we use to decide "negative" or "refund ticket".</li>
+    <li><strong>The same weights at every step.</strong> So an RNN can read a 5-word or a 500-word ticket with the same model size. An n-gram model, by contrast, needs a bigger table for every extra word of context.</li>
+  </ul>
+  <p>For those who like the formula, this is the whole idea in one line:</p>
+<pre class="output formula">new memory  =  tanh( W_x · current word  +  W_h · old memory  +  b )
+     hₜ                      xₜ                      hₜ₋₁</pre>
+  <p><code>W_x</code> and <code>W_h</code> are learned weight matrices; <code>tanh</code> just squeezes the numbers into the range −1 to 1 so they don't grow out of control.</p>
+  <h4>In code (PyTorch)</h4>
 <pre><code>import torch, torch.nn as nn
 
 rnn = nn.RNN(input_size=50, hidden_size=64, batch_first=True)   # e.g. 50-d GloVe vectors in
@@ -108,7 +140,12 @@ weights: {'weight_ih_l0': (64, 50), 'weight_hh_l0': (64, 64), 'bias_ih_l0': (64,
   <p>Language models are compared with <strong>perplexity</strong>: roughly, "how many choices is the model confused between at each step". Lower is better. A perplexity of 50 means the model is, on average, as uncertain as picking uniformly from 50 words.</p>
 
   <h3>Hands-on: an LSTM that invents new dishes</h3>
-  <p>We train a small character-level LSTM (the improved RNN from section 04) on 195 real Indian dish names, then ask it to write new ones:</p>
+  <p>We train a small character-level LSTM (the improved RNN from section 04) on 195 real Indian dish names, then ask it to write new ones.</p>
+  <div class="callout demo">
+    <span class="label">Download before you run</span>
+    <p>📄 <a href="static/data/dishes.txt" download><strong>dishes.txt</strong></a> (the 195 dish names, one per line) &nbsp;·&nbsp; 🐍 <a href="static/code/unit4/char_lstm.py" download><strong>char_lstm.py</strong></a> (the full script below)</p>
+    <p>In Google Colab, click the folder icon on the left, upload <code>dishes.txt</code>, then run the code. It trains in about 10 seconds on a CPU.</p>
+  </div>
 <pre><code>import torch, torch.nn as nn, random
 torch.manual_seed(0); random.seed(0)
 
@@ -163,7 +200,7 @@ for start in ["p", "ch", "m", "tandoori ", "kashmiri ", "mango ", "schezwan ", "
 'mango '     -&gt; mango dosa                   NEW
 'schezwan '  -&gt; schezwan noodlry             NEW
 'butter '    -&gt; butter chicken momos         NEW</pre>
-  <p>After 10 seconds of training on 195 names, the model has learned spelling, word boundaries and plausible dish structure. "Kashmiri momos" and "butter chicken momos" are exactly the kind of fusion dishes real menus carry. "noodlry" shows its limits: with this little data it still makes spelling mistakes. The dish list is included on this site as <a href="static/data/dishes.txt" download>dishes.txt</a>.</p>
+  <p>After 10 seconds of training on 195 names, the model has learned spelling, word boundaries and plausible dish structure. "Kashmiri momos" and "butter chicken momos" are exactly the kind of fusion dishes real menus carry. "noodlry" shows its limits: with this little data it still makes spelling mistakes.</p>
   <div class="callout industry">
     <span class="label">Industry lens</span>
     <p>This is the same generate-one-token-at-a-time loop as the bigram generator in Unit 2 and as ChatGPT. Before Transformers, LSTM language models powered <strong>smartphone keyboards</strong>: Google published in 2018 how Gboard's next-word prediction used a small LSTM variant trained with <em>federated learning</em>, so the model learned from typing on users' phones without the text leaving the device. RNN LMs were also used to re-rank candidate sentences in speech recognition and machine translation.</p>
@@ -173,8 +210,36 @@ for start in ["p", "ch", "m", "tandoori ", "kashmiri ", "mango ", "schezwan ", "
 <!-- 3 -->
 <section id="vanishing">
   <h2><span class="num">03</span>Vanishing and exploding gradients</h2>
-  <p>Training an RNN uses backpropagation <em>through time</em>: the chain rule from Unit 3, applied backwards over every step. The gradient that reaches word 1 has been multiplied by <code>W_h</code> and the tanh derivative once per step. Multiply a number smaller than 1 by itself 50 times and it disappears; larger than 1 and it explodes.</p>
-  <p>We can measure this directly. Feed 50 random inputs through untrained models and ask: how much does each earlier input affect the gradient of the final output?</p>
+  <div class="callout thread">
+    <span class="label">In one line</span>
+    <p>When an RNN learns, its "correction signal" travels <strong>backwards through every word</strong>, and gets multiplied at every step. Multiply by a small number again and again and the signal <strong>vanishes</strong>; by a big number and it <strong>explodes</strong>.</p>
+  </div>
+  <h4>First, how does an RNN learn?</h4>
+  <ol>
+    <li>It reads the whole ticket, word by word, and makes a guess ("delivery complaint").</li>
+    <li>We compare the guess with the right answer ("food complaint") and measure how wrong it was.</li>
+    <li>A <strong>correction signal</strong> (the <em>gradient</em>) is sent <strong>backwards</strong>, from the last word to the first, telling each step how to adjust. This is backpropagation from Unit 3, applied through time.</li>
+  </ol>
+  <h4>The problem: Chinese whispers</h4>
+  <p>Remember the game where a message is whispered along a line of 50 people? By the end, the message is lost. The correction signal has the same problem. At every word it passes back through, it gets <strong>multiplied</strong> by some number. Look at what repeated multiplication does:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Words back</th><th>Multiply by 0.5 each step</th><th>Multiply by 1.5 each step</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>0.5</td><td>1.5</td></tr>
+      <tr><td>5</td><td>0.03</td><td>7.6</td></tr>
+      <tr><td>10</td><td>0.001</td><td>58</td></tr>
+      <tr><td>20</td><td>0.000001</td><td>3,325</td></tr>
+      <tr><td>50</td><td class="bad">0.0000000000000009</td><td class="bad">637,621,500</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid">
+    <div class="card" style="--col:var(--c3)"><h4>Vanishing gradient (left column)</h4><p class="eg">The signal shrinks to almost zero. Early words get <strong>no correction</strong>, so the model never learns to use them. In practice: it <strong>forgets</strong> that the complaint was about the <em>biryani</em> mentioned 12 words ago.</p></div>
+    <div class="card" style="--col:var(--c6)"><h4>Exploding gradient (right column)</h4><p class="eg">The signal blows up to huge numbers. Weights jump wildly and training <strong>crashes</strong>, usually showing a loss of <code>NaN</code> ("not a number").</p></div>
+  </div>
+  <p><strong>Vanishing</strong> is the more common and more serious problem for RNNs, and it is the reason LSTMs and GRUs were invented (next section). <strong>Exploding</strong> has a simple fix, gradient clipping, covered below.</p>
+
+  <h4>Seeing it for real</h4>
+  <p>We don't have to take this on faith. The code below feeds 50 random inputs through untrained models and measures how strongly each earlier word still influences learning:</p>
 <pre><code>import torch, torch.nn as nn
 
 torch.manual_seed(0)
@@ -207,6 +272,7 @@ LSTM (forget bias 3)  10 steps back: 4.3e-01   25 back: 4.4e-01   49 back: 1.1e+
     <img src="static/images/unit4/gradient_flow_measured.png" alt="Line chart on a log scale: gradient size falls to about 1e-13 after 49 steps for a plain RNN and about 1e-10 for default GRU and LSTM, but stays near 1 for an LSTM with forget-gate bias 3" loading="lazy">
     <figcaption>Measured, not illustrated: the output of the code above.</figcaption>
   </figure>
+  <p><strong>How to read the chart:</strong> the further a line drops, the more the model forgets. The x-axis is how many words back; the y-axis is how much influence that word still has (1 = full, 10<sup>−12</sup> = practically none).</p>
   <ul>
     <li><strong>Plain RNN:</strong> a word 49 steps back has 10<sup>−13</sup> of the influence of the latest word. For learning purposes, it does not exist.</li>
     <li><strong>LSTM and GRU with default settings</strong> are only slightly better <em>at initialisation</em>. Their gates start half-open, so memory still leaks away.</li>
@@ -214,37 +280,91 @@ LSTM (forget bias 3)  10 steps back: 4.3e-01   25 back: 4.4e-01   49 back: 1.1e+
   </ul>
   <div class="callout gotcha">
     <span class="label">Real-world gotcha: exploding gradients</span>
-    <p>The opposite problem shows up in production training jobs as a loss that suddenly jumps to <code>NaN</code>. The standard fix is <strong>gradient clipping</strong>: if the gradient's size exceeds a threshold, scale it down. It is one line, <code>torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)</code>, and it is still used when training Transformers and LLMs today.</p>
+    <p>The opposite problem shows up in production training jobs as a loss that suddenly jumps to <code>NaN</code>. The standard fix is <strong>gradient clipping</strong>: if the correction signal gets bigger than a set limit, shrink it back to that limit, like a speed limiter on a car. It is one line, <code>torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)</code>, and it is still used when training Transformers and LLMs today.</p>
   </div>
 </section>
 
 <!-- 4 -->
 <section id="lstm">
   <h2><span class="num">04</span>LSTM: long short-term memory</h2>
-  <p>The <strong>LSTM</strong> (Hochreiter &amp; Schmidhuber, 1997) adds a separate <strong>cell state</strong>: a memory "highway" that runs through time and is changed only by small, controlled updates. Three learned <strong>gates</strong> (numbers between 0 and 1) decide what happens to it.</p>
+  <div class="callout thread">
+    <span class="label">In one line</span>
+    <p>An LSTM is an RNN with a separate <strong>notebook</strong> for long-term memory, plus three <strong>gates</strong> that decide what to <strong>erase</strong>, what to <strong>write</strong> and what to <strong>read out</strong>.</p>
+  </div>
+  <p>Think of a student taking notes in a long lecture. They don't rewrite the whole notebook after every sentence. They:</p>
+  <ul>
+    <li><strong>cross out</strong> notes that are no longer relevant (the <strong>forget gate</strong>),</li>
+    <li><strong>write down</strong> only the important new points (the <strong>input gate</strong>),</li>
+    <li>and when asked a question, <strong>read out</strong> only the relevant part of their notes (the <strong>output gate</strong>).</li>
+  </ul>
+  <p>A plain RNN has no notebook: it squeezes everything into one small memory and rewrites it completely at every word. That is why it forgets.</p>
+
+  <h4>Watch the gates work on a real review</h4>
+  <p><em>"The biryani was cold but the raita was amazing"</em></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Word</th><th>Forget gate (erase?)</th><th>Input gate (write?)</th><th>Notebook now says</th></tr></thead>
+    <tbody>
+      <tr><td>"biryani"</td><td>nothing to erase</td><td class="good">write: dish = biryani</td><td>biryani</td></tr>
+      <tr><td>"cold"</td><td>keep</td><td class="good">write: biryani is bad</td><td>biryani → negative</td></tr>
+      <tr><td>"but"</td><td>keep, but get ready</td><td>write: a contrast is coming</td><td>biryani → negative, contrast ahead</td></tr>
+      <tr><td>"raita"</td><td>keep the biryani note</td><td class="good">write: second dish = raita</td><td>biryani → negative; raita → ?</td></tr>
+      <tr><td>"amazing"</td><td>keep</td><td class="good">write: raita is good</td><td>biryani → negative; raita → positive</td></tr>
+    </tbody>
+  </table></div>
+  <p>At the end, the <strong>output gate</strong> reads out whatever the task needs: "mixed review" for sentiment, or "complaint about biryani" for the kitchen team. (The notes are written in plain English here; in the real model they are numbers, and the gates learn this behaviour from data.)</p>
+
+  <h4>Why this fixes the vanishing gradient</h4>
+  <p>In a plain RNN, the correction signal is <strong>multiplied</strong> by a small number at every step, so it disappears (section 03). In an LSTM, the notebook is updated by <strong>adding</strong> new notes to the old ones. When the forget gate is almost fully open (close to 1), the signal passes back through the notebook almost unchanged:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>After 50 words</th><th>Signal left</th></tr></thead>
+    <tbody>
+      <tr><td>Plain RNN (multiply by ~0.5 each step)</td><td class="bad">0.0000000000000009</td></tr>
+      <tr><td>LSTM with forget gate open (multiply by ~0.99 each step)</td><td class="good">0.6, still strong</td></tr>
+    </tbody>
+  </table></div>
+  <p>That is exactly the purple line in the measured chart above: the LSTM with its forget gate open keeps the signal alive across all 50 steps.</p>
   <figure>
     <img src="static/images/unit4/lstm_cell.svg" alt="LSTM cell: a cell-state highway from c t-1 to c t modified by a forget gate (multiply) and input gate (add); an output gate controls the hidden state h t; equations listed on the right" loading="lazy">
-    <figcaption>Forget, input and output gates around the cell-state highway.</figcaption>
+    <figcaption>The same idea as a diagram: the green line along the top is the notebook (called the <em>cell state</em>), and the three gates control it.</figcaption>
   </figure>
   <div class="table-wrap"><table>
-    <thead><tr><th>Gate</th><th>Question it answers</th><th>In our ticket example</th></tr></thead>
+    <thead><tr><th>Gate</th><th>Question it answers</th><th>In a support ticket</th></tr></thead>
     <tbody>
       <tr><td><strong>Forget gate f</strong></td><td>What should I erase from memory?</td><td>After "…but the raita", forget that we were discussing the biryani</td></tr>
       <tr><td><strong>Input gate i</strong></td><td>What new information should I store?</td><td>Store "refund" when it appears; ignore "please", "the"</td></tr>
       <tr><td><strong>Output gate o</strong></td><td>What part of memory is relevant right now?</td><td>Reveal "negative sentiment" when the classifier asks at the end</td></tr>
     </tbody>
   </table></div>
-  <p>The key line is <code>c = f * c + i * g</code>: the memory is updated by <strong>adding</strong>, not by repeatedly multiplying through a weight matrix. When <code>f</code> is close to 1, the gradient flows backwards almost unchanged. That is exactly what the purple line in the chart above shows.</p>
+  <p>For those who like the formula, the key line in the diagram is <code>c = f * c + i * g</code>: <em>new notebook = (forget gate × old notebook) + (input gate × new notes)</em>. Each gate is just a number between 0 (closed) and 1 (open), learned from data. The LSTM was introduced by Hochreiter &amp; Schmidhuber in 1997.</p>
 </section>
 
 <!-- 5 -->
 <section id="gru">
   <h2><span class="num">05</span>GRU: the lighter alternative</h2>
-  <p>The <strong>GRU</strong> (Gated Recurrent Unit; Cho et al., 2014) merges the cell state and hidden state and uses two gates instead of three.</p>
+  <div class="callout thread">
+    <span class="label">In one line</span>
+    <p>A GRU is a <strong>simpler LSTM</strong>: no separate notebook, and <strong>two gates instead of three</strong>. It remembers almost as well, with fewer parameters.</p>
+  </div>
+  <p>Back to our student. Instead of keeping a separate notebook, a GRU student has one page of notes and asks just two questions at every word:</p>
+  <div class="grid">
+    <div class="card" style="--col:var(--c4)"><h4>Update gate: "How much should I change?"</h4><p class="eg">Keep most of the old notes (the word was "the") or replace them with new ones (the word was "refund"). One dial does both jobs that the LSTM's forget and input gates do separately.</p></div>
+    <div class="card" style="--col:var(--c2)"><h4>Reset gate: "Should I look at my old notes?"</h4><p class="eg">When writing a new note, decide whether the old notes matter. After "…but", the old context may be less useful for the new thought.</p></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>LSTM</th><th>GRU</th></tr></thead>
+    <tbody>
+      <tr><td>Memory</td><td>Separate notebook (cell state) + working memory</td><td>One memory</td></tr>
+      <tr><td>Gates</td><td>3: forget, input, output</td><td>2: update, reset</td></tr>
+      <tr><td>Size</td><td>Bigger</td><td class="good">About 25% smaller</td></tr>
+      <tr><td>Training speed</td><td>Slower</td><td class="good">Faster</td></tr>
+      <tr><td>Accuracy</td><td colspan="2">Usually very similar. Teams try both and keep the one that wins on their data.</td></tr>
+    </tbody>
+  </table></div>
   <figure>
     <img src="static/images/unit4/gru_cell.svg" alt="GRU cell with a reset gate and an update gate blending the previous hidden state with a new candidate; compared with LSTM it has two gates, no separate cell state and 25 percent fewer parameters" loading="lazy">
-    <figcaption>Update gate: how much to keep. Reset gate: how much of the past to use when proposing something new.</figcaption>
+    <figcaption>The GRU as a diagram: the update gate blends old memory with the new candidate; the reset gate controls how much of the past is used to propose it.</figcaption>
   </figure>
+  <p>The GRU was introduced by Cho et al. in 2014, during work on machine translation (Unit 5). Here are the real sizes of the three models for the same input and memory size:</p>
 <pre><code>import torch.nn as nn
 for name, cls in [("RNN", nn.RNN), ("GRU", nn.GRU), ("LSTM", nn.LSTM)]:
     m = cls(input_size=100, hidden_size=128)
@@ -252,6 +372,7 @@ for name, cls in [("RNN", nn.RNN), ("GRU", nn.GRU), ("LSTM", nn.LSTM)]:
 <pre class="output">RNN   parameters = 29,440
 GRU   parameters = 88,320
 LSTM  parameters = 117,760</pre>
+  <h4>Summary: all three side by side</h4>
   <div class="table-wrap"><table>
     <thead><tr><th></th><th>Vanilla RNN</th><th>GRU</th><th>LSTM</th></tr></thead>
     <tbody>
@@ -261,7 +382,6 @@ LSTM  parameters = 117,760</pre>
       <tr><td>When teams chose it</td><td>Almost never in production</td><td>Smaller models, on-device, faster training</td><td>The safe default for most tasks, 2014–2018</td></tr>
     </tbody>
   </table></div>
-  <p>In practice the accuracy difference between GRU and LSTM is usually small; teams tried both and kept whichever did better on their validation set.</p>
 </section>
 
 <!-- 6 -->

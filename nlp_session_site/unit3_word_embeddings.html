@@ -14,8 +14,8 @@
 
 <nav class="toc" aria-label="On this page">
   <a class="home" href="index.html">← NLP in Practice</a>
-  <a class="toc-agenda" href="agenda.html">Session agenda</a>
   <ol>
+    <li><a href="#setup">Setup: install first</a></li>
     <li><a href="#why">Why embeddings?</a></li>
     <li><a href="#vectors">Meaning as geometry</a></li>
     <li><a href="#word2vec">word2vec</a></li>
@@ -40,6 +40,15 @@
   <h1>Word Embeddings</h1>
   <p class="sub">How machines learned that "refund" and "money back" mean the same thing, the neural network and calculus that make it work, and how embeddings power search, recommendations and RAG in real products.</p>
 </header>
+
+<div class="callout demo" id="setup">
+  <span class="label">Setup for this unit: run this first</span>
+  <p>Every code block on this page needs these libraries. In <strong>Google Colab</strong>, run this in the first cell:</p>
+<pre><code>!pip install gensim spacy scikit-learn pandas numpy
+!python -m spacy download en_core_web_sm</code></pre>
+  <p>On your own computer, run the same commands in a terminal without the leading <code>!</code>. Data: <a href="static/data/support_tickets.csv" download>support_tickets.csv</a>. The GloVe vectors (about 66 MB) and the text8 corpus are downloaded automatically by <code>gensim</code> the first time you run those cells, so you need an internet connection.</p>
+  <p>If Colab shows a <em>"Restart session"</em> prompt after installing <code>gensim</code> (it sometimes changes the <code>numpy</code> version), click it, then run the cells again.</p>
+</div>
 
 <!-- 0 -->
 <section id="why">
@@ -69,7 +78,7 @@
     <figcaption>Foods, cities and emotions form separate clusters, learned only from which words appear near each other.</figcaption>
   </figure>
   <p>Similarity between two word vectors is measured with <strong>cosine similarity</strong>: the cosine of the angle between them. 1 means the same direction, 0 means unrelated.</p>
-<pre class="output">cosine(a, b) = (a · b) / (‖a‖ × ‖b‖)</pre>
+<pre class="output formula">cosine(a, b) = (a · b) / (‖a‖ × ‖b‖)</pre>
   <p>Directions in the space carry meaning too. The "male → female" direction is roughly the same across many word pairs, which is why vector arithmetic like <em>king − man + woman ≈ queen</em> works:</p>
   <figure>
     <img src="static/images/unit3/embeddings_analogy.png" alt="GloVe vectors for man, woman, king, queen, boy, girl, prince, princess, uncle and aunt projected to 2D, with arrows from each male word to its female counterpart pointing in roughly the same direction" loading="lazy">
@@ -145,8 +154,10 @@ cereal</pre>
   <h3>B. Train your own word2vec</h3>
 <pre><code>import gensim.downloader as api
 from gensim.models import Word2Vec
+from gensim.models.word2vec import Text8Corpus
 
-corpus = api.load("text8")                          # ~17 million words of Wikipedia text
+path = api.load("text8", return_path=True)          # downloads ~17 million words of Wikipedia text (once)
+corpus = Text8Corpus(path)                          # streams it sentence by sentence
 model = Word2Vec(corpus, vector_size=100, window=5, min_count=5,
                  sg=1, negative=5, workers=2, epochs=1)   # sg=1: skip-gram, negative=5: negative sampling
 print(f"vocabulary = {len(model.wv):,} words")
@@ -156,7 +167,7 @@ for w in ["food", "king", "computer"]:
 food -&gt; ['goods', 'dairy', 'meat', 'raw', 'tobacco']
 king -&gt; ['prince', 'vii', 'queen', 'crowned', 'elector']
 computer -&gt; ['computers', 'hardware', 'computing', 'mainframe', 'graphics']</pre>
-  <p>This trained in <strong>52 seconds on 2 CPU cores</strong>. Note "food" → "goods", "tobacco": in Wikipedia, "food" often appears in trade and economics articles. <strong>Embeddings reflect the text they were trained on.</strong></p>
+  <p>This trained in <strong>52 seconds on 2 CPU cores</strong>. (We load text8 with <code>return_path=True</code> and <code>Text8Corpus</code> on purpose: the shorter <code>api.load("text8")</code> fails with an <code>ImportError</code> on current versions of the <code>smart_open</code> library.) Training uses several CPU threads, so your nearest neighbours may differ slightly from ours on every run. Note "food" → "goods", "tobacco": in Wikipedia, "food" often appears in trade and economics articles. <strong>Embeddings reflect the text they were trained on.</strong></p>
 
   <h3>C. What happens with too little data</h3>
 <pre><code>import pandas as pd
@@ -187,14 +198,16 @@ print("word2vec  refund -&gt;", [w for w, _ in w2v.wv.most_similar("refund", top
   <p><strong>fastText</strong> (Facebook AI Research, 2016–17) represents each word as a bag of <em>character n-grams</em> (the idea from Unit 2). A word's vector is the sum of its pieces' vectors, so it can build a vector for a misspelled or brand-new word.</p>
 <pre><code>import gensim.downloader as api
 from gensim.models import FastText
+from gensim.models.word2vec import Text8Corpus
 
-ft = FastText(api.load("text8"), vector_size=100, window=5, min_count=5, epochs=1, workers=2)
+corpus = Text8Corpus(api.load("text8", return_path=True))
+ft = FastText(corpus, vector_size=100, window=5, min_count=5, epochs=1, workers=2)
 for typo in ["delivry", "restaurnt", "biriyani"]:
     print(f"{typo:&lt;10} in vocab? {typo in ft.wv.key_to_index!s:&lt;5} nearest -&gt;", [w for w, _ in ft.wv.most_similar(typo, topn=3)])</code></pre>
 <pre class="output">delivry    in vocab? False nearest -&gt; ['dessert', 'dessau', 'deli']
 restaurnt  in vocab? False nearest -&gt; ['restaurant', 'restart', 'restraint']
 biriyani   in vocab? False nearest -&gt; ['birka', 'gemara', 'birla']</pre>
-  <p>An honest result: <strong>"restaurnt" works perfectly</strong>. "delivry" gets a vector (word2vec would raise an error) but the neighbours are only spelling look-alikes. "biriyani" fails because Wikipedia text has almost no Indian food vocabulary. Subwords help with typos; they do not replace domain data.</p>
+  <p>(As with word2vec, your exact neighbours may vary a little between runs.) An honest result: <strong>"restaurnt" works perfectly</strong>. "delivry" gets a vector (word2vec would raise an error) but the neighbours are only spelling look-alikes. "biriyani" fails because Wikipedia text has almost no Indian food vocabulary. Subwords help with typos; they do not replace domain data.</p>
 
   <div class="table-wrap"><table>
     <thead><tr><th></th><th>word2vec</th><th>GloVe</th><th>fastText</th></tr></thead>

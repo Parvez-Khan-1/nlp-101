@@ -14,8 +14,8 @@
 
 <nav class="toc" aria-label="On this page">
   <a class="home" href="index.html">← NLP in Practice</a>
-  <a class="toc-agenda" href="agenda.html">Session agenda</a>
   <ol>
+    <li><a href="#setup">Setup: install first</a></li>
     <li><a href="#why">Why feature extraction?</a></li>
     <li><a href="#onehot">One-hot encoding</a></li>
     <li><a href="#bow">Bag of words</a></li>
@@ -41,6 +41,14 @@
   <h1>Feature Extraction</h1>
   <p class="sub">How to turn text into numbers a model can learn from, and how to predict the next word. These "classic" techniques still run inside search engines, spam filters and the first version of almost every NLP product.</p>
 </header>
+
+<div class="callout demo" id="setup">
+  <span class="label">Setup for this unit: run this first</span>
+  <p>Every code block on this page needs these libraries. In <strong>Google Colab</strong>, run this in the first cell:</p>
+<pre><code>!pip install scikit-learn pandas numpy nltk</code></pre>
+  <p>On your own computer, run the same commands in a terminal without the leading <code>!</code>. Data: <a href="static/data/support_tickets.csv" download>support_tickets.csv</a> — upload it to Colab (folder icon on the left) or keep it next to your script.</p>
+  
+</div>
 
 <!-- 0 -->
 <section id="why">
@@ -499,7 +507,7 @@ char TF-IDF + LogReg   accuracy=0.81  latency=0.43 ms/ticket</pre>
     <li>What word comes next? <code>P(next word | "chicken biryani near")</code></li>
   </ul>
   <p>They are connected by the <strong>chain rule</strong> of probability:</p>
-<pre class="output">P(chicken biryani near me) = P(chicken) × P(biryani | chicken) × P(near | chicken biryani) × P(me | chicken biryani near)</pre>
+<pre class="output formula">P(chicken biryani near me) = P(chicken) × P(biryani | chicken) × P(near | chicken biryani) × P(me | chicken biryani near)</pre>
   <div class="grid">
     <div class="card" style="--col:var(--c3)"><h4>Autocomplete</h4><p class="eg">Search boxes and keyboards suggest the most probable next words.</p></div>
     <div class="card" style="--col:var(--c4)"><h4>Speech recognition</h4><p class="eg">"recognise speech" vs "wreck a nice beach": the LM picks the likelier sentence.</p></div>
@@ -512,10 +520,10 @@ char TF-IDF + LogReg   accuracy=0.81  latency=0.43 ms/ticket</pre>
 <section id="markov">
   <h2><span class="num">09</span>N-grams and Markov models: estimating the probability of a word</h2>
   <p>Conditioning on the whole history is impossible: most long histories never appear in any dataset. The <strong>Markov assumption</strong> simplifies it: the next word depends only on the last <em>n − 1</em> words.</p>
-<pre class="output">Bigram (n=2):   P(me | chicken biryani near)  ≈  P(me | near)
+<pre class="output formula">Bigram (n=2):   P(me | chicken biryani near)  ≈  P(me | near)
 Trigram (n=3):  P(me | chicken biryani near)  ≈  P(me | biryani near)</pre>
   <p>Now the probability of a word can be <strong>estimated by counting</strong> (maximum likelihood estimation):</p>
-<pre class="output">P(biryani | chicken) = count("chicken biryani") / count("chicken")</pre>
+<pre class="output formula">P(biryani | chicken) = count("chicken biryani") / count("chicken")</pre>
   <p>Let's build the autocomplete for our food app's search box from 15 search queries:</p>
 <pre><code>from collections import Counter
 
@@ -578,7 +586,7 @@ after 'chicken': [('biryani', 4), ('near', 1), ('tikka', 1), ('fried', 1)]</pre>
 <section id="smoothing">
   <h2><span class="num">10</span>Smoothing: never say never</h2>
   <p><strong>Smoothing</strong> takes a little probability away from things we have seen and gives it to things we have not. The simplest version is <strong>Laplace (add-one) smoothing</strong>: pretend every possible bigram was seen one extra time.</p>
-<pre class="output">P_laplace(word | prev) = (count(prev word) + 1) / (count(prev) + V)        V = vocabulary size</pre>
+<pre class="output formula">P_laplace(word | prev) = (count(prev word) + 1) / (count(prev) + V)        V = vocabulary size</pre>
 <pre><code># continuing from the block above
 import math
 
@@ -624,7 +632,7 @@ P(pizza   | chicken): MLE = 0.0   Laplace = 0.04</pre>
 <section id="naive-bayes">
   <h2><span class="num">11</span>Naive Bayes and its applications</h2>
   <p><strong>Naive Bayes</strong> classifies text using Bayes' theorem. For each class it asks: <em>how likely is this class, and how likely would it be to produce these words?</em></p>
-<pre class="output">P(class | words)  ∝  P(class) × P(word₁ | class) × P(word₂ | class) × …</pre>
+<pre class="output formula">P(class | words)  ∝  P(class) × P(word₁ | class) × P(word₂ | class) × …</pre>
   <p>It is "naive" because it assumes every word is independent of the others once you know the class. That is clearly false ("chicken" and "biryani" love to appear together), but it works surprisingly well in practice.</p>
   <figure>
     <img src="static/images/unit2/naive_bayes.svg" alt="Naive Bayes worked example: the message win free order gets a spam score of 0.000450 and a ham score of 0.0000035, giving 99.2 percent spam" loading="lazy">

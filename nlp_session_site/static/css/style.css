@@ -1,4 +1,4 @@
-/* NLP Expert Session – shared styles (same look as the agenda page) */
+/* NLP in Practice – shared styles */
 :root {
   --bg: #f8f9fb; --surface: #ffffff; --surface-2: #f1f2f5; --text: #0a0c10; --muted: #6b7280;
   --border: #e2e4e9; --accent: #1a56db; --accent-soft: #eef3fd;
@@ -144,9 +144,8 @@ footer { margin-top: 40px; color: var(--muted); font-size: 13px; text-align: cen
   figure, .callout, pre, table { break-inside: avoid; }
 }
 
-/* links back to the home page and agenda */
-.toc .toc-agenda { display: block; font-size: 13px; color: var(--muted); text-decoration: none; margin: -8px 0 14px; }
-.toc .toc-agenda:hover { color: var(--text); }
+/* pager: next unit not yet available */
 .pager .soon { flex: 1; text-align: right; background: var(--surface-2); border: 1px dashed var(--border); border-radius: 10px; padding: 14px 18px; color: var(--muted); }
 /* long inline code must wrap on phones */
 p code, li code, td code { overflow-wrap: anywhere; }
+.output.formula::before { content: "FORMULA"; }

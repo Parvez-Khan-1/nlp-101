@@ -14,8 +14,8 @@
 
 <nav class="toc" aria-label="On this page">
   <a class="home" href="index.html">← NLP in Practice</a>
-  <a class="toc-agenda" href="agenda.html">Session agenda</a>
   <ol>
+    <li><a href="#setup">Setup: install first</a></li>
     <li><a href="#her">Opening scene: Her</a></li>
     <li><a href="#evolution">Evolution of language</a></li>
     <li><a href="#what-is-nlp">What is NLP? (vs AI)</a></li>
@@ -46,6 +46,15 @@
   <h1>Introduction to Language</h1>
   <p class="sub">How the industry turns messy human text into something a machine can understand and act on, from the first rule-based systems to the pre-processing pipelines behind today's chatbots.</p>
 </header>
+
+<div class="callout demo" id="setup">
+  <span class="label">Setup for this unit: run this first</span>
+  <p>Every code block on this page needs these libraries. In <strong>Google Colab</strong>, run this in the first cell:</p>
+<pre><code>!pip install spacy nltk
+!python -m spacy download en_core_web_sm</code></pre>
+  <p>On your own computer, run the same commands in a terminal without the leading <code>!</code>. No data files needed.</p>
+  
+</div>
 
 <!-- 0 -->
 <section id="her">

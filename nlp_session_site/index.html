@@ -146,17 +146,6 @@
     .why-stat-num { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 0.35rem; }
     .why-stat-label { font-size: 0.8rem; color: var(--ink3); line-height: 1.5; }
 
-    /* AGENDA TIMELINE */
-    .timeline { margin: 2.5rem 0 1.5rem; position: relative; padding-left: 2rem; }
-    .timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
-    .timeline-item { position: relative; margin-bottom: 1rem; }
-    .timeline-dot { width: 16px; height: 16px; border-radius: 50%; position: absolute; left: -1.9rem; top: 1.35rem; border: 2px solid var(--surface); }
-    .timeline-content { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.5rem; transition: box-shadow 0.15s; display: grid; grid-template-columns: 130px 1fr; gap: 1.25rem; }
-    .timeline-content:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-    .timeline-era { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; padding-top: 0.2rem; }
-    .timeline-era small { display: block; color: var(--ink3); font-weight: 500; }
-    .timeline-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--ink); margin-bottom: 0.3rem; letter-spacing: -0.01em; }
-    .timeline-desc { font-size: 0.9rem; color: var(--ink3); line-height: 1.65; margin: 0; }
 
     /* UNIT CARDS */
     .unit-grid { display: grid; grid-template-columns: 1fr; gap: 1.1rem; margin: 2rem 0; }
@@ -217,7 +206,6 @@
       .page-header { padding: 5.5rem 0 3rem; }
       .about-layout { grid-template-columns: 1fr; gap: 1.5rem; }
       .why-stats { grid-template-columns: 1fr; }
-      .timeline-content { grid-template-columns: 1fr; gap: 0.3rem; }
       .why-matters-box { padding: 1.4rem; }
     }
   </style>
@@ -229,7 +217,6 @@
   <ul class="nav-links">
     <li><a href="#about">About</a></li>
     <li><a href="#why">Why NLP</a></li>
-    <li><a href="#agenda">Agenda</a></li>
     <li><a href="#units">Course Notes</a></li>
     <li><a href="#hands-on">Hands-on</a></li>
     <li><a href="#takeaways">Takeaways</a></li>
@@ -245,7 +232,6 @@
     <p class="page-desc">From bag-of-words to large language models — how Natural Language Processing is actually built, deployed and used in industry. Concepts explained through real products, real data and runnable code.</p>
     <div class="header-actions">
       <a class="btn" href="#units">Start with the course notes →</a>
-      <a class="btn ghost" href="agenda.html">View the 2-hour agenda</a>
     </div>
   </header>
 
@@ -295,27 +281,9 @@
     </div>
   </section>
 
-  <!-- 02 AGENDA -->
-  <section class="section" id="agenda">
-    <div class="section-label">02 · Session Agenda</div>
-    <h2>The 2-Hour Session</h2>
-    <div class="section-sub">Fast through the foundations, deep on embeddings, RNNs and the shift to Transformers</div>
-    <div class="timeline">
-      <div class="timeline-item"><div class="timeline-dot" style="background:#868e96"></div><div class="timeline-content"><div class="timeline-era" style="color:#6b7280">0:00 – 0:10<small>10 min</small></div><div><div class="timeline-title">Opening hook</div><p class="timeline-desc">A scene from <em>Her</em> (2013), and one messy Hinglish review through a 2005 keyword filter vs a modern LLM.</p></div></div></div>
-      <div class="timeline-item"><div class="timeline-dot" style="background:#f08c00"></div><div class="timeline-content"><div class="timeline-era" style="color:#b45309">0:10 – 0:25<small>15 min</small></div><div><div class="timeline-title">Fast-forward foundations</div><p class="timeline-desc">The production NLP pipeline, pre-processing, TF-IDF and why it is still the baseline every team must beat.</p></div></div></div>
-      <div class="timeline-item"><div class="timeline-dot" style="background:#1a56db"></div><div class="timeline-content"><div class="timeline-era" style="color:#1a56db">0:25 – 0:50<small>25 min</small></div><div><div class="timeline-title">Word embeddings: the big leap</div><p class="timeline-desc">word2vec, negative sampling, GloVe, fastText — live Gensim demo, semantic search and bias.</p></div></div></div>
-      <div class="timeline-item"><div class="timeline-dot" style="background:#adb5bd"></div><div class="timeline-content"><div class="timeline-era" style="color:#6b7280">0:50 – 0:55<small>5 min</small></div><div><div class="timeline-title">Break &amp; quick questions</div></div></div></div>
-      <div class="timeline-item"><div class="timeline-dot" style="background:#047857"></div><div class="timeline-content"><div class="timeline-era" style="color:#047857">0:55 – 1:07<small>12 min</small></div><div><div class="timeline-title">Neural networks &amp; CNNs for text</div><p class="timeline-desc">Backprop intuition and 1D convolutions as learned n-gram detectors.</p></div></div></div>
-      <div class="timeline-item"><div class="timeline-dot" style="background:#7c3aed"></div><div class="timeline-content"><div class="timeline-era" style="color:#7c3aed">1:07 – 1:27<small>20 min</small></div><div><div class="timeline-title">RNNs, LSTMs &amp; GRUs</div><p class="timeline-desc">Sequence models, vanishing gradients and gated memory — and why they were replaced.</p></div></div></div>
-      <div class="timeline-item"><div class="timeline-dot" style="background:#e8590c"></div><div class="timeline-content"><div class="timeline-era" style="color:#c2410c">1:27 – 1:42<small>15 min</small></div><div><div class="timeline-title">Seq2Seq, attention &amp; the paradigm shift</div><p class="timeline-desc">Machine translation, attention, Transformers, BERT vs GPT.</p></div></div></div>
-      <div class="timeline-item"><div class="timeline-dot" style="background:#1971c2"></div><div class="timeline-content"><div class="timeline-era" style="color:#1971c2">1:42 – 2:00<small>18 min</small></div><div><div class="timeline-title">NLP in industry today &amp; open Q&amp;A</div><p class="timeline-desc">LLMs, RAG, guardrails and evaluation; papers worth reading; skills recruiters look for.</p></div></div></div>
-    </div>
-    <a class="btn ghost" href="agenda.html">Open the detailed agenda →</a>
-  </section>
-
-  <!-- 03 UNITS -->
+  <!-- 02 UNITS -->
   <section class="section" id="units">
-    <div class="section-label">03 · Course Notes</div>
+    <div class="section-label">02 · Course Notes</div>
     <h2>Five Units, One Real Problem</h2>
     <div class="section-sub">Follow the syllabus in order — each unit builds on the last</div>
     <div class="unit-grid">
@@ -378,24 +346,24 @@
     </div>
   </section>
 
-  <!-- 04 HANDS-ON -->
+  <!-- 03 HANDS-ON -->
   <section class="section" id="hands-on">
-    <div class="section-label">04 · Hands-on</div>
+    <div class="section-label">03 · Hands-on</div>
     <h2>Run Everything Yourself</h2>
     <div class="section-sub">No setup beyond a browser and a Google account</div>
     <div class="hands-grid">
       <div class="hands-card">
         <div class="hands-icon">🧪</div>
         <div class="hands-title">Open Google Colab</div>
-        <p class="hands-desc">Create a new notebook and install the libraries used across the units:</p>
-        <pre class="cmd">!pip install spacy nltk gensim scikit-learn pandas
+        <p class="hands-desc">Create a new notebook and install everything used across the course. Each unit page also starts with its own setup cell.</p>
+        <pre class="cmd">!pip install spacy nltk gensim scikit-learn pandas numpy torch transformers sentencepiece
 !python -m spacy download en_core_web_sm</pre>
       </div>
       <div class="hands-card">
         <div class="hands-icon">📄</div>
         <div class="hands-title">Download the dataset</div>
-        <p class="hands-desc">120 synthetic support tickets in four queues, with Hinglish and typos. Used in Units 2, 3 and 4.</p>
-        <p style="margin-top:0.9rem"><a class="btn ghost" href="static/data/support_tickets.csv" download>support_tickets.csv ↓</a></p>
+        <p class="hands-desc"><strong>support_tickets.csv</strong>: 120 synthetic support tickets in four queues, with Hinglish and typos (Units 2–4). <strong>dishes.txt</strong>: 195 Indian dish names for the Unit 4 text generator.</p>
+        <p style="margin-top:0.9rem;display:flex;flex-wrap:wrap;gap:0.5rem"><a class="btn ghost" href="static/data/support_tickets.csv" download>support_tickets.csv ↓</a><a class="btn ghost" href="static/data/dishes.txt" download>dishes.txt ↓</a></p>
       </div>
       <div class="hands-card">
         <div class="hands-icon">📋</div>
@@ -405,9 +373,9 @@
     </div>
   </section>
 
-  <!-- 05 TAKEAWAYS -->
+  <!-- 04 TAKEAWAYS -->
   <section class="section" id="takeaways">
-    <div class="section-label">05 · Close</div>
+    <div class="section-label">04 · Close</div>
     <h2>Where You Go From Here</h2>
     <div class="section-sub">Three actions. Start this week.</div>
     <ul class="takeaway-list">
